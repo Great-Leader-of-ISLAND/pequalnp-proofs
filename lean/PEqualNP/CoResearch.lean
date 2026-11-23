@@ -79,4 +79,43 @@ lemma band_eval (i : Fin 57) (x : Fin 57 → Bool)
 lemma gate_budget (c : ℕ) (hc : c < 399) : c * gates.length < 57 * 7 := by
   simpa [gates] using hc
 
+-- The original existential conclusion, restricted to the verified finite range.
+lemma orderSeven (c : ℕ) (hc : c < 399) : ∃ (q N : ℕ) (S : Fin N → Finset (Fin N)), 2 ≤ q ∧ N = q * q + q + 1 ∧ (∀ i : Fin N, (S i).card = q + 1) ∧ (∀ i j : Fin N, i ≠ j → (S i ∩ S j).card = 1) ∧ (∀ a b : Fin N, a ≠ b → ∃ i : Fin N, a ∈ S i ∧ b ∈ S i) ∧ ∃ w : ℕ, q * q < 8 * (w + 1) ∧ w + q < N ∧ ∃ (gates : List PEqualNP.CircuitLowerBounds.Gate) (out : Fin N → ℕ), (∀ g ∈ gates, (g.op = PEqualNP.CircuitLowerBounds.GateOp.and ∨ g.op = PEqualNP.CircuitLowerBounds.GateOp.or) ∧ g.inputs.length ≤ 2) ∧ (∀ (i : Fin N) (x : Fin N → Bool), ((Finset.univ.filter (fun p : Fin N => x p = false)).card = w ∨ (Finset.univ.filter (fun p : Fin N => x p = false)).card = w + 1) → PEqualNP.CircuitLowerBounds.Circuit.eval ⟨gates, out i⟩ (List.ofFn x) = decide (∃ v ∈ S i, x v = true)) ∧ c * gates.length < N * q := by
+  refine ⟨7, 57, line, by decide, by decide, line_size, unique_intersection, join_points,
+    6, by decide, by decide, gates, fun _ => 57, ?_, ?_, gate_budget c hc⟩
+  · intro g hg
+    simp [gates] at hg
+    subst g
+    exact ⟨Or.inl rfl, by decide⟩
+  · intro i x hw
+    exact band_eval i x (by omega)
+
 end CoResearch.PlaneSeven
+
+namespace CoResearch.Band
+
+lemma distinguish {N k : ℕ} (s t : Finset (Fin N)) (p : Fin N)
+    (hp : p ∈ t) (hn : p ∉ s) (hlo : s.card ≤ k) (hhi : k < N) :
+    ∃ x : Fin N → Bool, (Finset.univ.filter (fun v => x v = false)).card = k ∧
+      ¬ (∃ v ∈ s, x v = true) ∧ (∃ v ∈ t, x v = true) := by
+  have hsub : s ⊆ Finset.univ.erase p := by
+    intro v hv
+    refine Finset.mem_erase.mpr ⟨?_, Finset.mem_univ _⟩
+    rintro rfl
+    exact hn hv
+  have hc : k ≤ (Finset.univ.erase p).card := by
+    rw [Finset.card_erase_of_mem (Finset.mem_univ p), Finset.card_univ, Fintype.card_fin]
+    omega
+  obtain ⟨f, hsf, hfp, hcard⟩ := Finset.exists_subsuperset_card_eq hsub hlo hc
+  let x : Fin N → Bool := fun v => decide (v ∉ f)
+  have hf : Finset.univ.filter (fun v => x v = false) = f := by ext v; simp [x]
+  refine ⟨x, hf ▸ hcard, ?_, p, hp, ?_⟩
+  · rintro ⟨v, hv, ht⟩
+    simpa [x, hsf hv] using ht
+  · have hpn : p ∉ f := fun h => (Finset.mem_erase.mp (hfp h)).1 rfl
+    simp [x, hpn]
+
+end CoResearch.Band
+
+#print axioms CoResearch.PlaneSeven.orderSeven
+#print axioms CoResearch.Band.distinguish
