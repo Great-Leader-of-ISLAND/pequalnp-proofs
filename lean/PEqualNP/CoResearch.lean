@@ -1,5 +1,6 @@
 import Mathlib
 import PEqualNP.Defs.CircuitLowerBounds
+import PEqualNP.Outside.L_meta_529
 
 namespace CoResearch.PlaneSeven
 
@@ -199,3 +200,72 @@ lemma line_gate_count {N k : ℕ} (S : Fin N → Finset (Fin N))
 end CoResearch.Band
 
 #print axioms CoResearch.Band.line_gate_count
+
+namespace CoResearch.Band
+
+open PEqualNP.CircuitLowerBounds PEqualNP.Outside.L_meta_529_aux
+
+lemma or_support (n : ℕ) : ∀ gs : List Gate, (∀ g ∈ gs, g.op = .or) → ∀ j : ℕ,
+    ∃ s : Finset (Fin n), ∀ x : Fin n → Bool, val gs x j = decide (∃ p ∈ s, x p = true) := by
+  classical
+  intro gs
+  induction gs using List.reverseRecOn with
+  | nil =>
+    intro _ j
+    by_cases hj : j < n
+    · refine ⟨{⟨j, hj⟩}, ?_⟩
+      intro x
+      simp [val_nil, hj]
+    · refine ⟨∅, ?_⟩
+      intro x
+      simp [val_nil, hj]
+  | append_singleton gs g ih =>
+    intro hg j
+    obtain ⟨base, last⟩ : (∀ a ∈ gs, a.op = .or) ∧ g.op = .or :=
+      ⟨fun a ha => hg a (by simp [ha]), hg g (by simp)⟩
+    choose sets hs using ih base
+    by_cases hj : j = n + gs.length
+    · refine ⟨g.inputs.toFinset.biUnion sets, ?_⟩
+      intro x
+      rw [val_snoc, if_pos hj, last]
+      apply Bool.eq_iff_iff.mpr
+      simp only [GateOp.eval, List.any_eq_true, List.mem_map, id_eq, decide_eq_true_eq,
+        Finset.mem_biUnion, List.mem_toFinset]
+      constructor
+      · rintro ⟨b, ⟨a, ha, rfl⟩, hb⟩
+        rw [hs, decide_eq_true_eq] at hb
+        obtain ⟨p, hp, hx⟩ := hb
+        exact ⟨p, ⟨a, ha, hp⟩, hx⟩
+      · rintro ⟨p, ⟨a, ha, hp⟩, hx⟩
+        exact ⟨val gs x a, ⟨a, ha, rfl⟩, by rw [hs, decide_eq_true_eq]; exact ⟨p, hp, hx⟩⟩
+    · exact ⟨sets j, fun x => by rw [val_snoc, if_neg hj, hs]⟩
+
+lemma recover_support {n k : ℕ} {a b : Finset (Fin n)} (ha : a.card ≤ k) (hk : k < n)
+    (on_layer : ∀ x : Fin n → Bool, (Finset.univ.filter (fun p => x p = false)).card = k →
+      decide (∃ v ∈ a, x v = true) = decide (∃ v ∈ b, x v = true)) : a = b := by
+  have sub {s t : Finset (Fin n)} (hs : s.card ≤ k)
+      (eq : ∀ x : Fin n → Bool, (Finset.univ.filter (fun p => x p = false)).card = k →
+        decide (∃ v ∈ s, x v = true) = decide (∃ v ∈ t, x v = true)) : t ⊆ s := by
+    intro p hp
+    by_contra hn
+    obtain ⟨x, hw, h0, h1⟩ := distinguish s t p hp hn hs hk
+    simpa [h0, h1] using eq x hw
+  have hba := sub ha on_layer
+  exact Finset.Subset.antisymm (sub ((Finset.card_le_card hba).trans ha) (fun x h => (on_layer x h).symm)) hba
+
+lemma or_band_cost {n m k : ℕ} (S : Fin m → Finset (Fin n)) (hk : k < n)
+    (hs : ∀ i, (S i).card ≤ k) (hm : ∀ i j, i ≠ j → (S i ∩ S j).card ≤ 1)
+    (gs : List Gate) (out : Fin m → ℕ) (hg : ∀ g ∈ gs, g.op = .or ∧ g.inputs.length ≤ 2)
+    (correct : ∀ i (x : Fin n → Bool), (Finset.univ.filter (fun p => x p = false)).card = k →
+      Circuit.eval ⟨gs, out i⟩ (List.ofFn x) = decide (∃ p ∈ S i, x p = true)) :
+    ∑ i, ((S i).card - 1) ≤ gs.length := by
+  apply PEqualNP.Outside.L_meta_529 n m S hm gs out
+  · exact fun g h => ⟨Or.inr (hg g h).1, (hg g h).2⟩
+  · intro i x
+    obtain ⟨b, hb⟩ := or_support n gs (fun g h => (hg g h).1) (out i)
+    have he : S i = b := recover_support (hs i) hk (fun y hy => (correct i y hy).symm.trans (hb y))
+    simpa only [he] using hb x
+
+end CoResearch.Band
+
+#print axioms CoResearch.Band.or_band_cost
