@@ -1,5 +1,6 @@
 import Mathlib
 import PEqualNP.Outside.L_meta_1377
+import PEqualNP.Outside.L_meta_1376
 
 namespace CoResearch.PlaneCases
 
@@ -95,6 +96,29 @@ theorem one_not_with_two_point_transversal
   have loss := pair_penalty S p r hp linear
   omega
 
+theorem one_not_with_sufficient_fanout
+    (q n m : ℕ) (S : Fin m → Finset (Fin n)) (R : Finset (Fin n))
+    (hq : 2 ≤ q) (sizes : ∀ i, (S i).card = q+1)
+    (linear : ∀ i j, i ≠ j → (S i ∩ S j).card ≤ 1)
+    (gates : List Gate) (out : Fin m → ℕ) (j : Fin gates.length)
+    (ops : ∀ g ∈ gates, (g.op = GateOp.and ∨ g.op = GateOp.or ∨ g.op = GateOp.not) ∧ g.inputs.length ≤ 2)
+    (neg : (gates.get j).op = GateOp.not)
+    (unique : ∀ i : Fin gates.length, (gates.get i).op = GateOp.not → i = j)
+    (correct : ∀ w (x : Fin n → Bool), Circuit.eval ⟨gates, out w⟩ (List.ofFn x) =
+      decide (∃ v ∈ S w, x v = true))
+    (onCare : ∀ x : Fin n → Bool,
+      ((∀ v ∈ R, x v = false) ∨ (∃ p ∈ R, ∀ v : Fin n, x v = decide (v = p))) →
+      Circuit.eval ⟨gates, n + (j : ℕ)⟩ (List.ofFn x) = true)
+    (enough : R.card.choose 2 ≤ (Finset.univ.filter (fun i : Fin gates.length =>
+      j < i ∧ n + (j : ℕ) ∈ (gates.get i).inputs)).card + 1) :
+    m * q ≤ gates.length := by
+  classical
+  have bound := PEqualNP.Outside.L_meta_1376 q n m S R hq sizes linear gates out j ops neg unique correct onCare
+  have loss := penalty_le_pairs S R linear
+  split at bound <;> omega
+
 end CoResearch.PlaneCases
 
 #print axioms CoResearch.PlaneCases.one_not_with_two_point_transversal
+
+#print axioms CoResearch.PlaneCases.one_not_with_sufficient_fanout
