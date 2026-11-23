@@ -264,8 +264,64 @@ lemma or_band_cost {n m k : ℕ} (S : Fin m → Finset (Fin n)) (hk : k < n)
   · intro i x
     obtain ⟨b, hb⟩ := or_support n gs (fun g h => (hg g h).1) (out i)
     have he : S i = b := recover_support (hs i) hk (fun y hy => (correct i y hy).symm.trans (hb y))
-    simpa only [he] using hb x
+    rw [he]
+    exact hb x
 
 end CoResearch.Band
 
 #print axioms CoResearch.Band.or_band_cost
+
+namespace CoResearch.Band
+
+open PEqualNP.CircuitLowerBounds
+
+lemma positive_cost {N k : ℕ} (s : Finset (Fin N)) (hs : 1 < s.card) (hk₀ : 0 < k)
+    (hk : k < N) (gs : List Gate) (out : ℕ)
+    (correct : ∀ x : Fin N → Bool, (Finset.univ.filter (fun v => x v = false)).card = k →
+      Circuit.eval ⟨gs, out⟩ (List.ofFn x) = decide (∃ v ∈ s, x v = true)) :
+    0 < gs.length := by
+  cases gs with
+  | cons g gs => simp
+  | nil =>
+    exfalso
+    by_cases hout : out < N
+    · let p : Fin N := ⟨out, hout⟩
+      obtain ⟨v, hv, hne⟩ := Finset.exists_mem_ne hs p
+      obtain ⟨x, hw, hoff, hon⟩ := distinguish {p} s v hv (by simpa using hne) (by simpa using hk₀) hk
+      have ht : x p = true := by simpa [Circuit.eval, Circuit.wires, List.getD, hout, p, hon] using correct x hw
+      exact hoff ⟨p, by simp, ht⟩
+    · obtain ⟨v, hv⟩ := Finset.card_pos.mp (by omega : 0 < s.card)
+      obtain ⟨x, hw, _, hon⟩ := distinguish ∅ s v hv (by simp) (by simp) hk
+      simpa [Circuit.eval, Circuit.wires, List.getD, hout, hon] using correct x hw
+
+lemma large_witness {c q N w : ℕ} (hc : 399 ≤ c) (hq : 2 ≤ q) (hn : N = q*q+q+1)
+    (S : Fin N → Finset (Fin N)) (size : ∀ i, (S i).card = q+1)
+    (meet : ∀ i j, i ≠ j → (S i ∩ S j).card = 1)
+    (band : q*q < 8*(w+1)) (room : w+q < N) (gs : List Gate) (out : Fin N → ℕ)
+    (correct : ∀ i (x : Fin N → Bool), (Finset.univ.filter (fun v => x v = false)).card = w+1 →
+      Circuit.eval ⟨gs, out i⟩ (List.ofFn x) = decide (∃ v ∈ S i, x v = true))
+    (budget : c * gs.length < N*q) : c < q := by
+  have hk : w+1 < N := by omega
+  have he : 0 < N := by omega
+  let i : Fin N := ⟨0, he⟩
+  have pos := positive_cost (S i) (by rw [size]; omega) (by omega : 0 < w+1) hk gs (out i) (correct i)
+  have qbig : 8 ≤ q := by
+    by_contra! h
+    have h7 : q ≤ 7 := by omega
+    have h49 := Nat.mul_le_mul h7 h7
+    have h57 : N ≤ 57 := by omega
+    have maxCost := Nat.mul_le_mul h57 h7
+    have ge := Nat.mul_le_mul_left c (show 1 ≤ gs.length by omega)
+    simp only [Nat.mul_one] at ge
+    omega
+  have minband : q ≤ w := by
+    have sq := Nat.mul_le_mul_right q qbig
+    omega
+  have cost := line_gate_count S (fun j => by rw [size]; omega) hk meet gs out correct
+  by_contra! h
+  have le := Nat.mul_le_mul cost h
+  exact (not_lt_of_ge (by simpa only [Nat.mul_comm gs.length c] using le)) budget
+
+end CoResearch.Band
+
+#print axioms CoResearch.Band.large_witness
