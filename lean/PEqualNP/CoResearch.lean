@@ -287,7 +287,7 @@ lemma positive_cost {N k : ℕ} (s : Finset (Fin N)) (hs : 1 < s.card) (hk₀ : 
     by_cases hout : out < N
     · let p : Fin N := ⟨out, hout⟩
       obtain ⟨v, hv, hne⟩ := Finset.exists_mem_ne hs p
-      obtain ⟨x, hw, hoff, hon⟩ := distinguish {p} s v hv (by simpa using hne) (by simpa using hk₀) hk
+      obtain ⟨x, hw, hoff, hon⟩ := distinguish {p} s v hv (by simpa using hne) (by simp only [Finset.card_singleton]; omega) hk
       have ht : x p = true := by simpa [Circuit.eval, Circuit.wires, List.getD, hout, p, hon] using correct x hw
       exact hoff ⟨p, by simp, ht⟩
     · obtain ⟨v, hv⟩ := Finset.card_pos.mp (by omega : 0 < s.card)
