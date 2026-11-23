@@ -8,7 +8,7 @@ jobs:
   solve:
     if: github.repository == 'Great-Leader-of-ISLAND/pequalnp-proofs' && github.event.repository.private == false
     runs-on: ubuntu-24.04
-    timeout-minutes: 168
+    timeout-minutes: 50
     steps:
       - name: Fetch the research program and certificate checker
         run: |
@@ -24,9 +24,15 @@ jobs:
           git -C drat fetch -q --depth 1 https://github.com/marijnheule/drat-trim.git 2e3b2dc0ecf938addbd779d42877b6ed69d9a985
           git -C drat checkout -q --detach FETCH_HEAD
           cc -O2 -DNDEBUG drat/drat-trim.c -o "$RUNNER_TEMP/drat-check"
-      - name: Check the independent positive control
-        run: python3 research/check1343v2.py
-      - name: Search L-meta-1343 shard 14
-        run: bash research/run-one.sh 14
-      - name: Search L-meta-1342 shard 15
-        run: bash research/run-one.sh 15
+      - name: Verify the position condition against full positive and negative controls
+        run: |
+          set -eu
+          for pos in 14 15; do
+            for extra in '' --bad-position; do
+              python3 research/late_junk1343.py --position "$pos" --cadical "$RUNNER_TEMP/solver/usr/bin/cadical" --control research/graph1342-control22.json --timeout 8 $extra
+            done
+          done
+      - name: Search first dirty AND at position 15
+        run: bash research/run-position.sh 15
+      - name: Search first dirty AND at position 14
+        run: bash research/run-position.sh 14
