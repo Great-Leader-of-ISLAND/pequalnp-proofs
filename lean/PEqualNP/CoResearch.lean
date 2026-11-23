@@ -119,3 +119,83 @@ end CoResearch.Band
 
 #print axioms CoResearch.PlaneSeven.orderSeven
 #print axioms CoResearch.Band.distinguish
+namespace CoResearch.Band
+
+open PEqualNP.CircuitLowerBounds
+
+-- An arbitrary gate list adds exactly one wire per gate, preserving every input wire.
+private def appendGate (xs : List Bool) (g : Gate) : List Bool :=
+  xs ++ [g.op.eval (g.inputs.map (fun i => xs.getD i false))]
+
+private lemma suffix (gs : List Gate) (xs : List Bool) :
+    ∃ ys, gs.foldl appendGate xs = xs ++ ys ∧ ys.length = gs.length := by
+  induction gs generalizing xs with
+  | nil => exact ⟨[], by simp, rfl⟩
+  | cons g gs ih =>
+    obtain ⟨ys, he, hl⟩ := ih (appendGate xs g)
+    refine ⟨g.op.eval (g.inputs.map (fun i => xs.getD i false)) :: ys, ?_, by simp [hl]⟩
+    simpa [appendGate, List.append_assoc] using he
+
+lemma line_gate_count {N k : ℕ} (S : Fin N → Finset (Fin N))
+    (sizes : ∀ i, 1 < (S i).card ∧ (S i).card ≤ k) (hk : k < N)
+    (meet : ∀ i j, i ≠ j → (S i ∩ S j).card = 1)
+    (gs : List Gate) (out : Fin N → ℕ)
+    (correct : ∀ i (x : Fin N → Bool), (Finset.univ.filter (fun v => x v = false)).card = k →
+      Circuit.eval ⟨gs, out i⟩ (List.ofFn x) = decide (∃ p ∈ S i, x p = true)) :
+    N ≤ gs.length := by
+  classical
+  have bounds (i : Fin N) : N ≤ out i ∧ out i < N + gs.length := by
+    constructor
+    · by_contra! h
+      let p : Fin N := ⟨out i, h⟩
+      obtain ⟨v, hv, hne⟩ := Finset.exists_mem_ne (sizes i).1 p
+      obtain ⟨x, hw, hoff, hon⟩ := distinguish {p} (S i) v hv (by simpa using hne)
+        (by have := sizes i; simp; omega) hk
+      have hp : x p = false := by
+        cases he : x p with
+        | false => rfl
+        | true => exact (hoff ⟨p, by simp, he⟩).elim
+      obtain ⟨ys, he, _⟩ := suffix gs (List.ofFn x)
+      have hf := correct i x hw
+      change (gs.foldl appendGate (List.ofFn x)).getD (out i) false = _ at hf
+      rw [he, List.getD, List.getElem?_append_left (by simpa using h), List.getElem?_ofFn] at hf
+      simp [h, hon, p] at hp hf
+      contradiction
+    · by_contra! h
+      obtain ⟨v, hv⟩ := Finset.card_pos.mp (by have := sizes i; omega : 0 < (S i).card)
+      obtain ⟨x, hw, _, hon⟩ := distinguish ∅ (S i) v hv (by simp) (by simp) hk
+      obtain ⟨ys, he, hl⟩ := suffix gs (List.ofFn x)
+      have hf := correct i x hw
+      change (gs.foldl appendGate (List.ofFn x)).getD (out i) false = _ at hf
+      rw [he, List.getD, List.getElem?_eq_none (by simpa [hl] using h)] at hf
+      simp [hon] at hf
+  have inj : Function.Injective out := by
+    intro i j hij
+    by_contra hne
+    have uns : ¬ S j ⊆ S i := by
+      intro hs
+      have eq : S i ∩ S j = S j := Finset.inter_eq_right.mpr hs
+      have hu := meet i j hne
+      rw [eq] at hu
+      have := (sizes j).1
+      omega
+    obtain ⟨v, hvj, hvi⟩ := Finset.not_subset.mp uns
+    obtain ⟨x, hw, hi, hj⟩ := distinguish (S i) (S j) v hvj hvi (sizes i).2 hk
+    have a := correct i x hw
+    have b := correct j x hw
+    rw [hij] at a
+    rw [a] at b
+    simp [hi, hj] at b
+  let gate : Fin N → Fin gs.length := fun i => ⟨out i - N, by have := bounds i; omega⟩
+  have hg : Function.Injective gate := by
+    intro a b h
+    apply inj
+    have he : out a - N = out b - N := congrArg Fin.val h
+    have := bounds a
+    have := (bounds b).1
+    omega
+  simpa using Fintype.card_le_of_injective gate hg
+
+end CoResearch.Band
+
+#print axioms CoResearch.Band.line_gate_count
