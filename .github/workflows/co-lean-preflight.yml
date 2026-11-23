@@ -31,5 +31,5 @@ jobs:
       - name: Build the research file with the pinned Mathlib
         working-directory: lean
         run: |
-          lake exe cache get PEqualNP.Outside.L_meta_1347
-          lake build +PEqualNP.Outside.L_meta_1347
+          lake exe cache get PEqualNP.CoDiagonal
+          lake build +PEqualNP.CoDiagonal
