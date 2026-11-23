@@ -159,8 +159,8 @@ lemma line_gate_count {N k : ℕ} (S : Fin N → Finset (Fin N))
       have hf := correct i x hw
       change (gs.foldl appendGate (List.ofFn x)).getD (out i) false = _ at hf
       rw [he, List.getD, List.getElem?_append_left (by simpa using h), List.getElem?_ofFn] at hf
-      simp [h, hon, p] at hp hf
-      contradiction
+      have ht : x p = true := by simpa [h, hon, p] using hf
+      exact Bool.false_ne_true (hp.symm.trans ht)
     · by_contra! h
       obtain ⟨v, hv⟩ := Finset.card_pos.mp (by have := sizes i; omega : 0 < (S i).card)
       obtain ⟨x, hw, _, hon⟩ := distinguish ∅ (S i) v hv (by simp) (by simp) hk
