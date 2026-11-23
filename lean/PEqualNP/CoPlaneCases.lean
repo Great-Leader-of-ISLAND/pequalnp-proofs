@@ -5,6 +5,44 @@ namespace CoResearch.PlaneCases
 
 open PEqualNP.CircuitLowerBounds
 
+lemma below_pairs (k : ℕ) : k - 1 ≤ k.choose 2 := by
+  cases k with
+  | zero => decide
+  | succ k =>
+    have e := Nat.choose_succ_succ k 1
+    simp only [Nat.choose_one_right] at e
+    omega
+
+lemma penalty_le_pairs {n m : ℕ} (S : Fin m → Finset (Fin n)) (R : Finset (Fin n))
+    (linear : ∀ i j, i ≠ j → (S i ∩ S j).card ≤ 1) :
+    ∑ i : Fin m, ((S i ∩ R).card - 1) ≤ R.card.choose 2 := by
+  classical
+  let pairs := fun i => (S i ∩ R).powersetCard 2
+  have separate : (Finset.univ : Finset (Fin m)).toSet.PairwiseDisjoint pairs := by
+    intro i _ j _ hne
+    apply Finset.disjoint_left.mpr
+    intro t ha hb
+    obtain ⟨si, two⟩ := Finset.mem_powersetCard.mp ha
+    obtain ⟨sj, _⟩ := Finset.mem_powersetCard.mp hb
+    have sub : t ⊆ S i ∩ S j := fun v hv => Finset.mem_inter.mpr
+      ⟨(Finset.mem_inter.mp (si hv)).1,(Finset.mem_inter.mp (sj hv)).1⟩
+    have card := Finset.card_le_card sub
+    have small := linear i j hne
+    omega
+  have covers : Finset.univ.biUnion pairs ⊆ R.powersetCard 2 := by
+    intro t ht
+    obtain ⟨i, _, hit⟩ := Finset.mem_biUnion.mp ht
+    obtain ⟨sub, size⟩ := Finset.mem_powersetCard.mp hit
+    exact Finset.mem_powersetCard.mpr ⟨fun v hv => (Finset.mem_inter.mp (sub hv)).2, size⟩
+  calc
+    _ ≤ ∑ i : Fin m, (pairs i).card := by
+      apply Finset.sum_le_sum
+      intro i _
+      simpa [pairs, Finset.card_powersetCard] using below_pairs (S i ∩ R).card
+    _ = (Finset.univ.biUnion pairs).card := (Finset.card_biUnion separate).symm
+    _ ≤ (R.powersetCard 2).card := Finset.card_le_card covers
+    _ = _ := Finset.card_powersetCard _ _
+
 lemma pair_penalty {n m : ℕ} (S : Fin m → Finset (Fin n)) (p r : Fin n)
     (hp : p ≠ r) (linear : ∀ i j, i ≠ j → (S i ∩ S j).card ≤ 1) :
     ∑ i : Fin m, ((S i ∩ {p,r}).card - 1) ≤ 1 := by
