@@ -1,7 +1,7 @@
 import Mathlib
 import PEqualNP.Defs
 
-namespace PEqualNP.Outside.Ladder1395
+namespace PEqualNP.Outside.L_meta_1395
 
 -- An integral potential for the remaining intervals.
 def Cap (h x k n : ℕ) : Prop :=
@@ -91,9 +91,9 @@ theorem cap_select {h x k n : ℕ} (hk : 0 < k) (hx : 0 < x) (hc : Cap h x k n) 
   obtain ⟨j, hkj, _, hjx, hj⟩ := cap_legalize hk (by omega : k ≤ h+k) hu hc
   exact ⟨j, hkj, hjx, hj⟩
 
-end PEqualNP.Outside.Ladder1395
+end PEqualNP.Outside.L_meta_1395
 
-namespace PEqualNP.Outside.Ladder1395
+namespace PEqualNP.Outside.L_meta_1395
 
 def Pays (q h b : ℕ) : List ℕ → Prop
   | [] => True
@@ -168,7 +168,7 @@ lemma tree (q h : ℕ) (G : ℕ → ℕ → ℕ → ℕ)
     have liftL := ih b left.sum left lenL (le_refl _) good'.1
     have liftR := ih (b+left.sum) (K-left.sum) right lenR (by omega) good'.2
     rw [node]
-    exact (le_min liftR liftL).trans (member_le_max _ _ left.sum (List.mem_range.mpr (by omega)))
+    exact (le_min liftR liftL).trans (member_le_max (fun j => min (G s (b+j) (K-j)) (G s b j)) (List.range (K+1)) left.sum (List.mem_range.mpr (by omega)))
 
 lemma buildChain (q h : ℕ) (Ready : ℕ → ℕ → Prop)
     (advance : ∀ x t : ℕ, x ≤ q + 1 → Ready x (t + 1) →
@@ -190,9 +190,9 @@ lemma buildChain (q h : ℕ) (Ready : ℕ → ℕ → Prop)
       rw [back, pos]
       exact ⟨hkq, hkpay, hpays⟩
 
-end PEqualNP.Outside.Ladder1395
+end PEqualNP.Outside.L_meta_1395
 
-open PEqualNP.Outside.Ladder1395 in
+open PEqualNP.Outside.L_meta_1395 in
 theorem PEqualNP.Outside.L_meta_1395 : ∀ (q s : ℕ), 2 ≤ q → ∀ G : ℕ → ℕ → ℕ → ℕ, (∀ b K : ℕ, G 0 b K = ((q ^ 2 + q + 1) - (if b = 0 then 0 else min (q ^ 2 + q + 1) (b * q + 1))) * min K q) → (∀ t b K : ℕ, G (t + 1) b K = (List.range (K + 1)).foldr (fun (j acc : ℕ) => max acc (min (G t (b + j) (K - j)) (G t b j))) 0) → q * (q * (q + 1 - 2 ^ s) / 2 ^ (s + 1)) ≤ G s 0 (q ^ 2 + q + 1) := by
   intro q s hq G base node
   let d := 2 ^ s
