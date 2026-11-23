@@ -61,7 +61,7 @@ theorem switch_line_tests (s : Finset V) (before : Finset V → Prop)
   · intro h
     apply top.mpr
     intro ha
-    have actual := (computed _).mp (by simpa [h] using ha)
+    have actual := (computed (Finset.univ \ s)).mp (by simpa [h] using ha)
     obtain ⟨p, hp, hc⟩ := actual
     exact (Finset.mem_sdiff.mp hc).2 hp
   · intro h

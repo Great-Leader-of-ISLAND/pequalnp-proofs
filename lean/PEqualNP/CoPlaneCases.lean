@@ -10,8 +10,8 @@ lemma below_pairs (k : ℕ) : k - 1 ≤ k.choose 2 := by
   cases k with
   | zero => decide
   | succ k =>
-    have e := Nat.choose_succ_succ k 1
-    simp only [Nat.choose_one_right] at e
+    change k.succ - 1 ≤ k.succ.choose (Nat.succ 1)
+    rw [Nat.choose_succ_succ, Nat.choose_one_right]
     omega
 
 lemma penalty_le_pairs {n m : ℕ} (S : Fin m → Finset (Fin n)) (R : Finset (Fin n))
@@ -19,7 +19,7 @@ lemma penalty_le_pairs {n m : ℕ} (S : Fin m → Finset (Fin n)) (R : Finset (F
     ∑ i : Fin m, ((S i ∩ R).card - 1) ≤ R.card.choose 2 := by
   classical
   let pairs := fun i => (S i ∩ R).powersetCard 2
-  have separate : (Finset.univ : Finset (Fin m)).toSet.PairwiseDisjoint pairs := by
+  have separate : ((Finset.univ : Finset (Fin m)) : Set (Fin m)).PairwiseDisjoint pairs := by
     intro i _ j _ hne
     apply Finset.disjoint_left.mpr
     intro t ha hb
