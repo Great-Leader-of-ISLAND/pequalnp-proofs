@@ -31,5 +31,8 @@ jobs:
       - name: Build the research file with the pinned Mathlib
         working-directory: lean
         run: |
-          lake exe cache get PEqualNP.CoGraph22
-          lake build +PEqualNP.CoGraph22
+          lake exe cache get PEqualNP.CoCleanPrefix
+          lake build +PEqualNP.CoCleanPrefix
+          echo 'import PEqualNP.CoCleanPrefix' > "$RUNNER_TEMP/PrefixAudit.lean"
+          echo '#print axioms PEqualNP.Research.CoCleanPrefix.prefix_fires_iff_singleton' >> "$RUNNER_TEMP/PrefixAudit.lean"
+          lake env lean "$RUNNER_TEMP/PrefixAudit.lean"
