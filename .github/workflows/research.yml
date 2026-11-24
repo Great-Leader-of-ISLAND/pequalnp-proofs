@@ -1,0 +1,71 @@
+name: Seven-variable theta complete paired-row frontier
+on:
+  push:
+    branches: [co-theta-leaves-0915]
+permissions:
+  contents: read
+jobs:
+  lean:
+    if: github.repository == 'Great-Leader-of-ISLAND/pequalnp-proofs' && github.event.repository.private == false
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    env:
+      LEAN_NUM_THREADS: 2
+    steps:
+      - name: Fetch this exact public commit
+        run: |
+          git init -q
+          git fetch -q --depth 1 "https://github.com/${GITHUB_REPOSITORY}.git" "$GITHUB_SHA"
+          git checkout -q --detach FETCH_HEAD
+          git init -q project
+          git -C project fetch -q --depth=1 --no-tags https://github.com/brilliant-hq/pequalnp-proofs.git cc7575339c58a3f0e2e855a13128e39ba904a1fc
+          git -C project checkout -q --detach FETCH_HEAD
+          cp research/CoTheta*.lean project/lean/PEqualNP/
+      - name: Install pinned Lean
+        working-directory: project/lean
+        run: |
+          curl -fsSL --retry 3 -o "$RUNNER_TEMP/elan.tar.gz" https://github.com/leanprover/elan/releases/download/v4.4.0/elan-x86_64-unknown-linux-gnu.tar.gz
+          echo '0e8250aa2be86c7af929ade68db617af9edc8b9ccf6eaf5ece228250d0d032e2  '"$RUNNER_TEMP/elan.tar.gz" | sha256sum -c -
+          tar xzf "$RUNNER_TEMP/elan.tar.gz" -C "$RUNNER_TEMP" elan-init
+          "$RUNNER_TEMP/elan-init" -y --no-modify-path --default-toolchain none
+          export PATH="$HOME/.elan/bin:$PATH"
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+          elan toolchain install "$(cat lean-toolchain)"
+          lean --version
+      - name: Classify tight theta frontiers and replay four planted formulas
+        working-directory: research
+        run: |
+          python3 -B theta-layer-splits.py --head all --depth 2 --seconds 8 --max-states 25000 --output "$RUNNER_TEMP/levels.json"
+          python3 -B theta-decomposition.py "$RUNNER_TEMP/levels.json" --control --recursive --seconds 55 --limit 20000
+      - name: Build shared first-layer proof
+        working-directory: project/lean
+        run: |
+          lake exe cache get Mathlib
+          lake build +PEqualNP.CoThetaLayerSanity
+          printf '%s\n' 'import PEqualNP.CoThetaLayerSanity' '#print axioms CoThetaLayerSanity.ThetaCut.checkedTop' '#print axioms CoThetaLayerSanity.ThetaCut.rootMatch0' > "$RUNNER_TEMP/Audit.lean"
+          lake env lean "$RUNNER_TEMP/Audit.lean"
+      - name: Auditable eight-second leaf probes with a bounded memory budget
+        working-directory: project/lean
+        run: |
+          set +e
+          ulimit -v 3800000
+          for key in 3-0 3-5 3-22 2-0 2-100 2-299 1-0 1-238 1-476 0-0 0-131 0-262; do
+            t=${key%-*}; i=${key#*-}
+            cat > "$RUNNER_TEMP/Leaf.lean" <<LEAN
+          import PEqualNP.CoThetaLayerSanity
+          open CoThetaLayerSanity CoThetaLayerSanity.ThetaCut
+          set_option maxRecDepth 30000
+          set_option maxHeartbeats 0
+          theorem leaf : Impossible 9 $t (L9.state $t $i) := exclude_search (by decide +kernel) (by decide +kernel)
+          #print axioms leaf
+          LEAN
+            echo "START theta leaf $t $i"
+            timeout 8s lake env lean "$RUNNER_TEMP/Leaf.lean"
+            echo "LEAF EXIT $t $i $?"
+          done
+      - name: Bridge ordinary circuits to reused public theta certificate
+        working-directory: project/lean
+        run: |
+          lake build +PEqualNP.CoThetaOrdinary
+          printf '%s\n' 'import PEqualNP.CoThetaOrdinary' '#print axioms CoThetaOrdinary.cheap_prefix_cut' > "$RUNNER_TEMP/Cut.lean"
+          lake env lean "$RUNNER_TEMP/Cut.lean"
