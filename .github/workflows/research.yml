@@ -1,0 +1,23 @@
+name: Partial plane single-bypass and multi-output search
+on:
+  push:
+    branches: [co-partial-plane-0904]
+permissions:
+  contents: read
+jobs:
+  solve:
+    if: github.repository == 'Great-Leader-of-ISLAND/pequalnp-proofs' && github.event.repository.private == false
+    runs-on: ubuntu-24.04
+    timeout-minutes: 9
+    steps:
+      - name: Fetch the research program and certificate checker
+        run: |
+          set -euo pipefail
+          git init -q
+          git fetch -q --depth 1 "https://github.com/${GITHUB_REPOSITORY}.git" "$GITHUB_SHA"
+          git checkout -q --detach FETCH_HEAD
+      - name: Verify controls and search limited windows
+        working-directory: research
+        run: |
+          python3 -B parallel2572.py
+          python3 -B window2572.py --seconds 230 --seed 12572
