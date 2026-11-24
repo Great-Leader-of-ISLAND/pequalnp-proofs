@@ -1,0 +1,153 @@
+import PEqualNP.CoCodec3174
+import PEqualNP.CoRoot3174
+namespace CoNine3024.Canon.S0Y
+set_option maxRecDepth 32768
+set_option maxHeartbeats 0
+def compactAtom := expand #[0x0,0x1,0x2000,0x2001,0x4000000,0x4000001,0x4002000,0x4002001,0x8000000000,0x8000000001,0x8000002000,0x8000002001,0x8004000000,0x8004000001,0x8004002000,0x8004002001] 52 0x1fff 0x8004002001000800400200100080040020010008004002001
+def w0 : Truth := rawTruth 0
+def w1 : Truth := rawTruth 1
+def w2 : Truth := rawTruth 2
+def w3 : Truth := rawTruth 3
+def w4 : Truth := rawTruth 4
+def w5 : Truth := rawTruth 5
+def w6 : Truth := rawTruth 6
+def w7 : Truth := rawTruth 7
+def w8 : Truth := rawTruth 8
+def w9 : Truth := ~~~w0
+def w10 : Truth := w2 ||| w1
+def w11 : Truth := w3 ||| w1
+def w12 : Truth := w5 ||| w3
+def w13 : Truth := w8 ||| w3
+def w14 : Truth := w8 ||| w5
+def w15 : Truth := w10 ||| w3
+def w16 : Truth := w10 ||| w5
+def w17 : Truth := w10 ||| w8
+def w18 : Truth := w10 &&& w9
+def w19 : Truth := w11 &&& w9
+def w20 : Truth := w11 &&& w10
+def w21 : Truth := w12 &&& w9
+def w22 : Truth := w12 &&& w10
+def w23 : Truth := w12 ||| w10
+def w24 : Truth := w13 &&& w9
+def w25 : Truth := w13 &&& w10
+def w26 : Truth := w13 ||| w10
+def w27 : Truth := w14 &&& w9
+def w28 : Truth := w14 &&& w10
+def w29 : Truth := w14 ||| w10
+def w30 : Truth := w15 &&& w9
+def w31 : Truth := w16 &&& w9
+def w32 : Truth := w17 &&& w9
+def w33 : Truth := w17 &&& w11
+def w34 : Truth := w18 ||| w3
+def w35 : Truth := w18 ||| w5
+def w36 : Truth := w18 ||| w8
+def w37 : Truth := w18 &&& w11
+def w38 : Truth := w18 &&& w12
+def w39 : Truth := w18 ||| w12
+def w40 : Truth := w18 &&& w13
+def w41 : Truth := w18 ||| w13
+def w42 : Truth := w18 &&& w14
+def w43 : Truth := w18 ||| w14
+def w44 : Truth := w19 ||| w10
+def w45 : Truth := w21 ||| w10
+def w46 : Truth := w21 ||| w18
+def w47 : Truth := w24 ||| w10
+def w48 : Truth := w24 ||| w18
+def w49 : Truth := w27 ||| w10
+def w50 : Truth := w27 ||| w18
+def w51 : Truth := w30 ||| w5
+def w52 : Truth := w30 ||| w8
+def w53 : Truth := w31 ||| w3
+def w54 : Truth := w31 ||| w8
+def w55 : Truth := w31 ||| w10
+def w56 : Truth := w32 ||| w3
+def w57 : Truth := w32 ||| w5
+def w58 : Truth := w32 ||| w10
+def w59 : Truth := w34 &&& w10
+def w60 : Truth := w35 &&& w10
+def w61 : Truth := w36 &&& w10
+def V : Array Atom := #[
+⟨w37,0xfff80000000000007fffffe000,0x811c08e047023811c08e047023811c08e047023811c08e047023,0x0⟩,
+⟨w38,0x7ffc000000,0x1980cc06603301980cc06603301980cc06603301980cc066033,0x0⟩,
+⟨w40,0x7ffc000000,0xa10d086843421a10d086843421a10d086843421a10d086843421,0x0⟩,
+⟨w42,0x0,0xa09d04e827413a09d04e827413a09d04e827413a09d04e827413,0x0⟩,
+⟨w18,0x1ffffff80000000000007fffffe000,0xa19d0ce867433a19d0ce867433a19d0ce867433a19d0ce867433,0x0⟩,
+⟨w19,0xfff8000000000fff8003ffe0000007fffffe000,0x835c1ae0d706b835c1ae0d706b835c1ae0d706b835c1ae0d706b,0x0⟩,
+⟨w30,0xfff8000001ffffff8003ffe0000007fffffe000,0xa3dd1ee8f747ba3dd1ee8f747ba3dd1ee8f747ba3dd1ee8f747b,0x0⟩,
+⟨w31,0x3ffe0000007ffc001ffffff80000000000007fffffe000,0xa1dd0ee87743ba1dd0ee87743ba1dd0ee87743ba1dd0ee87743b,0x0⟩,
+⟨w21,0x3ffe000ffffffc0000000000003ffe0000007ffc000000,0x3d81ec0f607b03d81ec0f607b03d81ec0f607b03d81ec0f607b,0x0⟩,
+⟨w46,0x3ffe000ffffffc001ffffff8003ffe0000007fffffe000,0xa3dd1ee8f747ba3dd1ee8f747ba3dd1ee8f747ba3dd1ee8f747b,0x0⟩,
+⟨w32,0x7fffffe000fff8000001ffffff80000000000007fffffe000,0xa19d0ce867433a19d0ce867433a19d0ce867433a19d0ce867433,0x0⟩,
+⟨w24,0x7fffffe000fff80000000000000003ffe0000007ffc000000,0xa34d1a68d3469a34d1a68d3469a34d1a68d3469a34d1a68d3469,0x0⟩,
+⟨w48,0x7fffffe000fff8000001ffffff8003ffe0000007fffffe000,0xa3dd1ee8f747ba3dd1ee8f747ba3dd1ee8f747ba3dd1ee8f747b,0x0⟩,
+⟨w27,0x7fffffe000ffffffc00000000000000000000000000000000,0xa0dd06e83741ba0dd06e83741ba0dd06e83741ba0dd06e83741b,0x0⟩,
+⟨w50,0x7fffffe000ffffffc001ffffff80000000000007fffffe000,0xa1dd0ee87743ba1dd0ee87743ba1dd0ee87743ba1dd0ee87743b,0x0⟩,
+⟨w9,0x7fffffe000ffffffc001ffffff8003ffe0000007fffffe000,0xabdd5eeaf757babdd5eeaf757babdd5eeaf757babdd5eeaf757b,0x1⟩,
+⟨w0,0xfff8000001fff0000003ffe0000007ffc001ffffff8000001fff,0x5422a11508a845422a11508a845422a11508a845422a11508a84,0x1⟩,
+⟨w1,0xfff80000000000000003ffffff,0x811c08e047023811c08e047023811c08e047023811c08e047023,0x20⟩,
+⟨w2,0x3ffffff0000000000000fffffffffe000,0x30a1850c2861430a1850c2861430a1850c2861430a1850c28614,0x400⟩,
+⟨w59,0x1ffffff8000000000fffffffffe000,0xa19d0ce867433a19d0ce867433a19d0ce867433a19d0ce867433,0x0⟩,
+⟨w20,0xfff8000000000fffffffffffff,0x811c08e047023811c08e047023811c08e047023811c08e047023,0x0⟩,
+⟨w60,0x1ffffff80000000000007fffffe000,0xa19d0ce867433a19d0ce867433a19d0ce867433a19d0ce867433,0x0⟩,
+⟨w22,0xffffffc000000,0x1980cc06603301980cc06603301980cc06603301980cc066033,0x0⟩,
+⟨w61,0x1ffffff80000000000007fffffe000,0xb19d8cec67633b19d8cec67633b19d8cec67633b19d8cec67633,0x0⟩,
+⟨w25,0xffffffc000000,0xb10d886c43621b10d886c43621b10d886c43621b10d886c43621,0x0⟩,
+⟨w28,0x0,0xb09d84ec27613b09d84ec27613b09d84ec27613b09d84ec27613,0x0⟩,
+⟨w10,0x3fffffffff8000000000fffffffffffff,0xb1bd8dec6f637b1bd8dec6f637b1bd8dec6f637b1bd8dec6f637,0x0⟩,
+⟨w44,0xfff8003fffffffff8003ffe000fffffffffffff,0xb3fd9fecff67fb3fd9fecff67fb3fd9fecff67fb3fd9fecff67f,0x0⟩,
+⟨w55,0x3ffe0000007ffffffffffff8000000000fffffffffffff,0xb1fd8fec7f63fb1fd8fec7f63fb1fd8fec7f63fb1fd8fec7f63f,0x0⟩,
+⟨w45,0x3ffe000ffffffffffffffff8003ffe000fffffffffffff,0xb3fd9fecff67fb3fd9fecff67fb3fd9fecff67fb3fd9fecff67f,0x0⟩,
+⟨w58,0x7fffffe000fff8003fffffffff8000000000fffffffffffff,0xb1bd8dec6f637b1bd8dec6f637b1bd8dec6f637b1bd8dec6f637,0x0⟩,
+⟨w47,0x7fffffe000fff8003fffffffff8003ffe000fffffffffffff,0xb3fd9fecff67fb3fd9fecff67fb3fd9fecff67fb3fd9fecff67f,0x0⟩,
+⟨w49,0x7fffffe000ffffffffffffffff8000000000fffffffffffff,0xb1fd8fec7f63fb1fd8fec7f63fb1fd8fec7f63fb1fd8fec7f63f,0x0⟩,
+⟨w3,0x1ffffff80000000000000003ffe000ffffffc000000,0x7483a41d20e907483a41d20e907483a41d20e907483a41d20e9,0x8000⟩,
+⟨w34,0x1ffffff8000001ffffff8003ffe000fffffffffe000,0xa7dd3ee9f74fba7dd3ee9f74fba7dd3ee9f74fba7dd3ee9f74fb,0x0⟩,
+⟨w53,0x3ffffffffffffc001ffffff8003ffe000fffffffffe000,0xa7dd3ee9f74fba7dd3ee9f74fba7dd3ee9f74fba7dd3ee9f74fb,0x0⟩,
+⟨w56,0x7ffffffffffff8000001ffffff8003ffe000fffffffffe000,0xa7dd3ee9f74fba7dd3ee9f74fba7dd3ee9f74fba7dd3ee9f74fb,0x0⟩,
+⟨w33,0x1ffffff8000000000fff8000000000fffffffffffff,0x811c08e047023811c08e047023811c08e047023811c08e047023,0x0⟩,
+⟨w11,0x1ffffff8000000000fff8003ffe000fffffffffffff,0x875c3ae1d70eb875c3ae1d70eb875c3ae1d70eb875c3ae1d70eb,0x0⟩,
+⟨w15,0x1ffffff8003fffffffff8003ffe000fffffffffffff,0xb7fdbfedff6ffb7fdbfedff6ffb7fdbfedff6ffb7fdbfedff6ff,0x0⟩,
+⟨w4,0x3ffffff0000000000000,0xa89544aa25512a89544aa25512a89544aa25512a89544aa25512,0x2108001⟩,
+⟨w5,0x3ffe0000007ffc0000000007ffc0000000000000000000,0xd806c03601b00d806c03601b00d806c03601b00d806c03601b,0x40000000⟩,
+⟨w35,0x3ffe0000007ffc001fffffffffc0000000007fffffe000,0xa1dd0ee87743ba1dd0ee87743ba1dd0ee87743ba1dd0ee87743b,0x0⟩,
+⟨w51,0x3ffe000ffffffc001ffffffffffffe0000007fffffe000,0xa3dd1ee8f747ba3dd1ee8f747ba3dd1ee8f747ba3dd1ee8f747b,0x0⟩,
+⟨w57,0x7fffffe000ffffffc001fffffffffc0000000007fffffe000,0xa1dd0ee87743ba1dd0ee87743ba1dd0ee87743ba1dd0ee87743b,0x0⟩,
+⟨w16,0x3ffe0000007fffffffffffffffc000000fffffffffffff,0xb1fd8fec7f63fb1fd8fec7f63fb1fd8fec7f63fb1fd8fec7f63f,0x0⟩,
+⟨w12,0x3ffffffffffffc0000000007fffffe000ffffffc000000,0x7d83ec1f60fb07d83ec1f60fb07d83ec1f60fb07d83ec1f60fb,0x0⟩,
+⟨w39,0x3ffffffffffffc001ffffffffffffe000fffffffffe000,0xa7dd3ee9f74fba7dd3ee9f74fba7dd3ee9f74fba7dd3ee9f74fb,0x0⟩,
+⟨w23,0x3ffffffffffffffffffffffffffffe000fffffffffffff,0xb7fdbfedff6ffb7fdbfedff6ffb7fdbfedff6ffb7fdbfedff6ff,0x0⟩,
+⟨w6,0xffffffc0000000000000000000fff80000000000000000000000,0xee07703b81dc0ee07703b81dc0ee07703b81dc0ee07703b81dc,0x10800100020⟩,
+⟨w7,0x7fffffffff00000000000000000000000000,0xcf067833c19e0cf067833c19e0cf067833c19e0cf067833c19e0,0x842000400⟩,
+⟨w8,0xffffffffffffffff800000000000000000000000000000000000,0xf007803c01e00f007803c01e00f007803c01e00f007803c01e00,0x10000000000⟩,
+⟨w36,0xffffffffffffffff8000001ffffff80000000000007fffffe000,0xf19f8cfc67e33f19f8cfc67e33f19f8cfc67e33f19f8cfc67e33,0x0⟩,
+⟨w52,0xffffffffffffffff8000001ffffff8003ffe0000007fffffe000,0xf3df9efcf7e7bf3df9efcf7e7bf3df9efcf7e7bf3df9efcf7e7b,0x0⟩,
+⟨w54,0xfffffffffffffffffffc001ffffff80000000000007fffffe000,0xf1df8efc77e3bf1df8efc77e3bf1df8efc77e3bf1df8efc77e3b,0x0⟩,
+⟨w17,0xffffffffffffffff8003fffffffff8000000000fffffffffffff,0xf1bf8dfc6fe37f1bf8dfc6fe37f1bf8dfc6fe37f1bf8dfc6fe37,0x0⟩,
+⟨w13,0xffffffffffffffff80000000000000003ffe000ffffffc000000,0xf74fba7dd3ee9f74fba7dd3ee9f74fba7dd3ee9f74fba7dd3ee9,0x0⟩,
+⟨w41,0xffffffffffffffff8000001ffffff8003ffe000fffffffffe000,0xf7dfbefdf7efbf7dfbefdf7efbf7dfbefdf7efbf7dfbefdf7efb,0x0⟩,
+⟨w26,0xffffffffffffffff8003fffffffff8003ffe000fffffffffffff,0xf7ffbffdffefff7ffbffdffefff7ffbffdffefff7ffbffdffeff,0x0⟩,
+⟨w14,0xfffffffffffffffffffc0000000007ffc0000000000000000000,0xf0df86fc37e1bf0df86fc37e1bf0df86fc37e1bf0df86fc37e1b,0x0⟩,
+⟨w43,0xfffffffffffffffffffc001fffffffffc0000000007fffffe000,0xf1df8efc77e3bf1df8efc77e3bf1df8efc77e3bf1df8efc77e3b,0x0⟩,
+⟨w29,0xffffffffffffffffffffffffffffffffc000000fffffffffffff,0xf1ff8ffc7fe3ff1ff8ffc7fe3ff1ff8ffc7fe3ff1ff8ffc7fe3f,0x0⟩]
+def ask : Oracle := lookup 293 126 0 ⟨6,#[0x220005c0001c000100c1403000030405411c0040083281,0x14244070f0061c8006041000002000040781140001040200,0x80001400142020c1114500100581000006087040005001,0x4004100488204d1020493820041400c008100100004c]⟩ ⟨6,#[0x70158054d55255629b4003544162d571535c40e49270e54e,0xe59320759001641528d89e58b00759601235e55639659c,0x79255540b1ce40056158041239c00035b516540355492456,0x7107ce48d0004105550000007000210007887164167102d7,0x75242141058d5564965405984800120c080048754f410348,0x71059001635048048d38039c49038e5a179e596296282408,0x38059179239685c54a40b79e59e410540462356890386445,0x55e7904885927920122dc19a79554901b40e3802de2c054e,0x55659249365c31010e59084e01655078b79e51078d49c000,0x35c000]⟩ ⟨42,#[0xbe5205830c6f948160c22be520583086f948160c11be52048314af948120c51be52048310af948120c41be5204830caf948120c22be520483046f144160c33bc5105830caf144160c22bc510583086f144160c11bc5104830caf144120c22bc510483046f1440e0c42bc5103830caf1440e0c21824e1f901ca09387e4062824e1f9014a09387e4051824e1f90108b8f8160c422e3e05830c8b8f8160c211c420f878c40000000000,0x2f948160c42be5205830cef948160c32]⟩
+def guard := guided 0 ask
+def st := record V [15, 16, 17, 18, 26, 33, 40, 41, 49, 50, 51] ⟨41,#[0x10040000421802000021040000021102000001084300000084208000000210c0000001080008001084200400084200020000210801000010800000010882000000844000000042108000002108000000008420000000420]⟩ 32 2048 64
+def t10 : Table := catalog st 41 17 0 ⟨4,#[0x1061d000130654111]⟩ ⟨27,#[0x1ffba2000000002fee2545fd4607bfba20bbf722a37ea302dfdd1009fba2063f73000000000afdca043fba20dff744107ee7038fdcc0000001507f51802fee601efdca00bfb90000000006fee7030fdca03bfb9005bf7200e7ee2025fdce059fb9409bf5bc00000001ffdcc,0x28fdc406dfb9c0000000127ee5003fdce000000000bf7281d7ee7014fdc4]⟩
+theorem proven10 : valid guard (geom 0) 10 t10 := by
+  apply grouped (groups:=14) (block:=3) (blank_valid guard (geom 0) 9) (by decide) (by decide +kernel)
+  intro b; fin_cases b <;> decide +kernel
+def t11 : Table := catalog st 47 20 0 ⟨4,#[0x1db070511400030a6001]⟩ ⟨28,#[0x7ffc400effd1b88fdc80000000e0bfdccd45fdcc00bfdcc008fdc800cffce023fdc40000000f05fdd1a05fdc4019fded015ff65e05fdccb85fdc8007fdc402bfdc80000000009ffca03bfded031fde9e45fdce017fde9023ffc49c5ff4601afdf0035ffcc8c5fdc4035fdccbc5fdca,0xe27fd6f000000002bffc8ac5fdc80000000015fd65000000000bffcc000000003efdf0a07fdc40000000008ffc89c6ff469d5fd65]⟩
+theorem proven11 : valid guard (geom 0) 11 t11 := by
+  apply grouped (groups:=16) (block:=3) proven10 (by decide) (by decide +kernel)
+  intro b; fin_cases b <;> decide +kernel
+def t12 : Table := catalog st 17 6 0 ⟨2,#[0x80c]⟩ ⟨22,#[0x27ff6517ff0aefde70000028ffe3e7ffb78fdeb00000000000000002effe717f70800000e3ffafcfff0a3f78efffe9]⟩
+theorem proven12 : valid guard (geom 0) 12 t12 := by
+  apply grouped (groups:=6) (block:=3) proven11 (by decide) (by decide +kernel)
+  intro b; fin_cases b <;> decide +kernel
+def t13 : Table := catalog st 1 1 0 ⟨0,#[0x0]⟩ ⟨16,#[0xffe1]⟩
+theorem proven13 : valid guard (geom 0) 13 t13 := by
+  apply grouped (groups:=1) (block:=3) proven12 (by decide) (by decide +kernel)
+  intro b; fin_cases b <;> decide +kernel
+theorem root_mem : hit t13 (order (CoRoot3174.root 0 true))=true := by decide +kernel
+theorem exclusion : run guard (geom 0) 13 (order (CoRoot3174.root 0 true))=false := hit_false proven13 root_mem
+end CoNine3024.Canon.S0Y
