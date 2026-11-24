@@ -7,7 +7,7 @@ namespace PEqualNP.Research.PlanePairs
 open PEqualNP.CircuitLowerBounds
 
 -- The chosen trigger pairs depend only on the plane. The conclusion applies
--- to every circuit whose inverted signal is true whenever a pair is present.
+-- to every circuit whose NOT output is false whenever a pair is present.
 theorem pair_trigger_lower_bound (q m : ℕ) (S : Fin m → Finset (Fin m))
     (hq : 77 ≤ q) (hm : m = q*q+q+1) (hsize : ∀ i, (S i).card = q+1)
     (hinter : ∀ i j, i ≠ j → (S i ∩ S j).card = 1)
@@ -31,7 +31,7 @@ theorem pair_trigger_lower_bound (q m : ℕ) (S : Fin m → Finset (Fin m))
     PEqualNP.Research.PairedArc.seven_pairs_of_arc14 S A ha ht
   refine ⟨B, hpairs, hd, ?_⟩
   intro gates out j hg hj hu hf hswitch
-  exact PEqualNP.Outside.CoSevenBlocks.seven_blocks S B (by omega) (by positivity)
+  exact PEqualNP.Outside.CoSevenBlocks.seven_blocks S B (by omega) (Nat.succ_le_succ (Nat.zero_le _))
     hsize (fun i k h => (hinter i k h).le) hcover hthin gates out j hg hj hu hf hswitch
 
 end PEqualNP.Research.PlanePairs
