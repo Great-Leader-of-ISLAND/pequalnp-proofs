@@ -1,0 +1,78 @@
+name: Check physical OR lower bound and graph cut proofs
+on:
+  push:
+    branches: [co-p2-geometry-certs-1442]
+permissions:
+  contents: write
+jobs:
+  lean:
+    if: github.repository == 'Great-Leader-of-ISLAND/pequalnp-proofs' && github.event.repository.private == false
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    env:
+      LEAN_NUM_THREADS: 2
+    steps:
+      - name: Fetch this exact public commit
+        run: |
+          git init -q
+          git fetch -q --depth 1 "https://github.com/${GITHUB_REPOSITORY}.git" "$GITHUB_SHA"
+          git checkout -q --detach FETCH_HEAD
+          git init -q project
+          git -C project fetch -q --depth=1 --no-tags https://github.com/open-goat/pequalnp-proofs.git 048b39bb2c5b2c21da06d44218d16366086a68d9
+          git -C project checkout -q --detach FETCH_HEAD
+          cp research/Co*.lean project/lean/PEqualNP/
+      - name: Generate reproducible finite certificates
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -eu
+          c++ -std=c++17 -O2 research/3143-cached-data.cpp -o "$RUNNER_TEMP/certify"
+          mkdir -p certificates
+          for mode in seven-signed seven-small eight-ordinary; do
+            set +e
+            timeout 22 "$RUNNER_TEMP/certify" "$mode" "certificates/$mode.txt" 15
+            status=$?
+            set -e
+            echo "Finite certificate $mode generator status $status"
+            if [ "$status" -ne 0 ]; then continue; fi
+            test "$(wc -c < "certificates/$mode.txt")" -le 20971520
+            sha256sum "certificates/$mode.txt"
+            git add -- "certificates/$mode.txt"
+          done
+          if ! git diff --cached --quiet; then
+            git -c user.name=github-actions -c user.email=41898282+github-actions[bot]@users.noreply.github.com commit -qm 'Record finite certificate inputs for seven and eight vertices'
+            gh auth setup-git
+            git push -q "https://github.com/${GITHUB_REPOSITORY}.git" HEAD:refs/heads/co-p2-certificate-data-1442
+          fi
+      - name: Exercise the nine-vertex search and its planted control
+        continue-on-error: true
+        run: |
+          set -eu
+          c++ -std=c++17 -O2 research/3024-frontier.cpp -o "$RUNNER_TEMP/nine"
+          "$RUNNER_TEMP/nine" 0 0 3 15 2 control
+          for pivot in -1 0 1 4 7 9; do
+            "$RUNNER_TEMP/nine" "$pivot" 0 2 13 7 -1 || status=$?
+            if [ "${status:-0}" -eq 10 ]; then echo "Candidate found, full assignment validation required"; fi
+            unset status
+          done
+      - name: Install pinned Lean
+        working-directory: project/lean
+        run: |
+          curl -fsSL --retry 3 -o "$RUNNER_TEMP/elan.tar.gz" https://github.com/leanprover/elan/releases/download/v4.4.0/elan-x86_64-unknown-linux-gnu.tar.gz
+          echo '0e8250aa2be86c7af929ade68db617af9edc8b9ccf6eaf5ece228250d0d032e2  '"$RUNNER_TEMP/elan.tar.gz" | sha256sum -c -
+          tar xzf "$RUNNER_TEMP/elan.tar.gz" -C "$RUNNER_TEMP" elan-init
+          "$RUNNER_TEMP/elan-init" -y --no-modify-path --default-toolchain none
+          export PATH="$HOME/.elan/bin:$PATH"
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+          elan toolchain install "$(cat lean-toolchain)"
+          lean --version
+      - name: Build the research file with the pinned Mathlib
+        working-directory: project/lean
+        run: |
+          lake exe cache get Mathlib
+          failed=0
+          for module in CoGenericArcs2147 CoSeveral1593 Co1593SafeBound CoAO3143EightPrice CoAO3143Memo; do
+            timeout 320 lake build "+PEqualNP.$module" || failed=1
+          done
+          exit "$failed"
