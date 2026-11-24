@@ -39,9 +39,34 @@ theorem exact_on_anchored_lines (I : P → L → Prop) (A B : Finset P → Finse
     obtain ⟨p,hp,a,ha',hadj⟩ :=
       (restrict_to_anticomplete I A B am bm spec U K ha hn X {l} hna hK).mp hb'
     obtain rfl := Finset.mem_singleton.mp ha'
-    exact ⟨p,hp,l,hl,hadj⟩
+    exact ⟨p,hp,_,hl,hadj⟩
   · intro h
     obtain ⟨p,hp,l,hl,hadj⟩ := h
     exact ⟨((spec X Y).mpr ⟨p,hp,l,hl,hadj⟩).2, l,hl⟩
+
+-- If every small extension of the anchor remains rejected on its largest
+-- independent point set, the first factor is exact on the entire restriction.
+theorem exact_if_extensions_reject [Fintype P] (I : P → L → Prop) [DecidableRel I]
+    (A B : Finset P → Finset L → Prop) (am : mono A)
+    (spec : ∀ X Y, A X Y ∧ B X Y ↔ edgeIn I X Y) (r : ℕ)
+    (small : ∀ X Y, A X Y → ∃ T ⊆ Y, T.card ≤ r ∧ A X T)
+    (K J : Finset L)
+    (reject : ∀ T ⊆ J, T.card ≤ r →
+      ¬ A (Finset.univ.filter (fun p => ∀ l ∈ K ∪ T, ¬ I p l)) (K ∪ T))
+    (X : Finset P) (Y : Finset L) (avoid : ¬ edgeIn I X K) (active : Y ⊆ J) :
+    A X Y ↔ edgeIn I X Y := by
+  refine ⟨?_, fun h => ((spec _ _).mpr h).1⟩
+  intro ha
+  by_contra hn
+  obtain ⟨T,hT,hcard,ht⟩ := small X Y ha
+  apply reject T (hT.trans active) hcard
+  refine am ?_ Finset.subset_union_right ht
+  intro p hp
+  apply Finset.mem_filter.mpr
+  refine ⟨Finset.mem_univ _, ?_⟩
+  intro l hl hpl
+  rcases Finset.mem_union.mp hl with hk | ht
+  · exact avoid ⟨p,hp,l,hk,hpl⟩
+  · exact hn ⟨p,hp,l,hT ht,hpl⟩
 
 end PEqualNP.Research.AnchorReduction
