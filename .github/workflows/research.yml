@@ -1,0 +1,30 @@
+name: Check monotone cofactor frontiers with one free inverter
+on:
+  push:
+    branches: [co-one-negative-1043]
+permissions:
+  contents: read
+jobs:
+  solve:
+    if: github.repository == 'Great-Leader-of-ISLAND/pequalnp-proofs' && github.event.repository.private == false
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - name: Fetch the research program and certificate checker
+        run: |
+          set -euo pipefail
+          git init -q
+          git fetch -q --depth 1 "https://github.com/${GITHUB_REPOSITORY}.git" "$GITHUB_SHA"
+          git checkout -q --detach FETCH_HEAD
+          cd "$RUNNER_TEMP"
+          apt-get download cadical
+          dpkg-deb -x cadical_*.deb solver
+          "$RUNNER_TEMP/solver/usr/bin/cadical" --version
+          git init -q drat
+          git -C drat fetch -q --depth 1 https://github.com/marijnheule/drat-trim.git 2e3b2dc0ecf938addbd779d42877b6ed69d9a985
+          git -C drat checkout -q --detach FETCH_HEAD
+          cc -O2 -DNDEBUG drat/drat-trim.c -o "$RUNNER_TEMP/drat-check"
+      - name: Test the complete cofactor frontiers
+        run: |
+          cd research
+          python3 signed2683-control.py "$RUNNER_TEMP/solver/usr/bin/cadical" "$RUNNER_TEMP/drat-check" "$RUNNER_TEMP/known"
