@@ -31,7 +31,7 @@ jobs:
       - name: Build the research file with the pinned Mathlib
         working-directory: lean
         run: |
-          lake exe cache get PEqualNP.CoPlanePairs
+          lake exe cache get Mathlib
           lake build +PEqualNP.CoPlanePairs
           echo 'import PEqualNP.CoPlanePairs' > "$RUNNER_TEMP/PrefixAudit.lean"
           echo '#print axioms PEqualNP.Research.PlanePairs.pair_trigger_lower_bound' >> "$RUNNER_TEMP/PrefixAudit.lean"
