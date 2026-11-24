@@ -1,0 +1,28 @@
+name: Petersen first-gate live wire states
+on:
+  push:
+    branches: [co-petersen-frontier-0424]
+permissions:
+  contents: read
+jobs:
+  solve:
+    if: github.repository == 'Great-Leader-of-ISLAND/pequalnp-proofs' && github.event.repository.private == false
+    runs-on: ubuntu-24.04
+    timeout-minutes: 32
+    steps:
+      - name: Fetch the research program and certificate checker
+        run: |
+          set -euo pipefail
+          git init -q
+          git fetch -q --depth 1 "https://github.com/${GITHUB_REPOSITORY}.git" "$GITHUB_SHA"
+          git checkout -q --detach FETCH_HEAD
+      - name: Search finite suffix buckets sequentially
+        run: |
+          set -eu
+          cd research
+          for case in '1665 negative-only 0' '1665 live 6' '1667 live 6' '1667 live 5' '1665 live 5' '1665 negative-only 6' '1667 dead 6' '1665 live 0' '1667 live 0'; do
+            read -r gap mode count <<< "$case"
+            curl -fsS --max-time 15 https://data.pequalnp.com/data/desk/gaps.json -o "$RUNNER_TEMP/ledger.json"
+            if ! python3 -c "import json,sys; assert any(x['id']=='L-meta-'+sys.argv[1] for x in json.load(open(sys.argv[2]))['gaps'])" "$gap" "$RUNNER_TEMP/ledger.json"; then continue; fi
+            python3 -B petersen-first-frontier.py --gap "$gap" --mode "$mode" --not-count "$count" --seconds 36 --nodes 1100000
+          done
