@@ -1,0 +1,98 @@
+name: Verify independent reductions and pointwise cut models
+on:
+  push:
+    branches: [co-p2-tight-table-and-bank-2135]
+permissions:
+  contents: read
+jobs:
+  lean:
+    if: github.repository == 'Great-Leader-of-ISLAND/pequalnp-proofs' && github.event.repository.private == false
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    env:
+      LEAN_NUM_THREADS: 2
+    steps:
+      - name: Fetch this exact public commit
+        run: |
+          git init -q
+          git fetch -q --depth 1 "https://github.com/${GITHUB_REPOSITORY}.git" "$GITHUB_SHA"
+          git checkout -q --detach FETCH_HEAD
+          git init -q project
+          git -C project fetch -q --depth=1 --no-tags https://github.com/open-goat/pequalnp-proofs.git 048b39bb2c5b2c21da06d44218d16366086a68d9
+          git -C project checkout -q --detach FETCH_HEAD
+          cp research/Co*.lean project/lean/PEqualNP/
+      - name: Install pinned Lean
+        working-directory: project/lean
+        run: |
+          curl -fsSL --retry 3 -o "$RUNNER_TEMP/elan.tar.gz" https://github.com/leanprover/elan/releases/download/v4.4.0/elan-x86_64-unknown-linux-gnu.tar.gz
+          echo '0e8250aa2be86c7af929ade68db617af9edc8b9ccf6eaf5ece228250d0d032e2  '"$RUNNER_TEMP/elan.tar.gz" | sha256sum -c -
+          tar xzf "$RUNNER_TEMP/elan.tar.gz" -C "$RUNNER_TEMP" elan-init
+          "$RUNNER_TEMP/elan-init" -y --no-modify-path --default-toolchain none
+          export PATH="$HOME/.elan/bin:$PATH"
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+          elan toolchain install "$(cat lean-toolchain)"
+          lean --version
+      - name: Restore the pinned Mathlib
+        working-directory: project/lean
+        timeout-minutes: 7
+        run: lake exe cache get Mathlib
+      - name: Test every seven-gate bank survivor against exact leaf certificates
+        run: |
+          cd research
+          python3 3004-bank-leaf-check.py --all-source "$RUNNER_TEMP/all7.cpp"
+          c++ -std=c++17 -O2 "$RUNNER_TEMP/all7.cpp" -o "$RUNNER_TEMP/bank"
+          python3 3004-orbit-input.py 7 > "$RUNNER_TEMP/orbits"
+          "$RUNNER_TEMP/bank" 65 < "$RUNNER_TEMP/orbits" > "$RUNNER_TEMP/cols7.log"
+          tail -1 "$RUNNER_TEMP/cols7.log"
+          python3 3004-bank-leaf-check.py --k 7 --log "$RUNNER_TEMP/cols7.log"
+          python3 3004-emit-bank-lean.py "$RUNNER_TEMP/cols7.log" "$GITHUB_WORKSPACE/project/lean/PEqualNP/CoAllSeven3004.lean"
+      - name: Generate and replay both unrestricted cut tables
+        if: always()
+        run: |
+          cd research
+          c++ -O3 -std=c++17 4482-table-export.cpp -o "$RUNNER_TEMP/cuts"
+          for seed in 0 1; do
+            timeout -k 3s 190s "$RUNNER_TEMP/cuts" "$seed" "$RUNNER_TEMP/seed$seed.tsv"
+            sha256sum "$RUNNER_TEMP/seed$seed.tsv"
+          done
+          python3 4482-table-lean.py "$RUNNER_TEMP/seed0.tsv" "$GITHUB_WORKSPACE/project/lean/PEqualNP/CoTableEight4482.lean" --count 8 --group 1
+      - name: Test the remaining ten signed formula multiplicities on four-coordinate restrictions
+        if: always()
+        run: |
+          cd research
+          sudo systemd-run --scope --quiet --collect -p MemoryMax=2G setpriv --reuid="$(id -u)" --regid="$(id -g)" --clear-groups timeout -k 5s 95s python3 4938-minor-four.py 7
+      - name: Verify CoAllSeven3004
+        if: always()
+        working-directory: project/lean
+        timeout-minutes: 6
+        run: sudo systemd-run --scope --quiet --collect -p MemoryMax=8G setpriv --reuid="$(id -u)" --regid="$(id -g)" --clear-groups env HOME="$HOME" PATH="$PATH" LEAN_NUM_THREADS=2 timeout --kill-after=10s 260 /usr/bin/time -f 'module_seconds=%e rss_kib=%M' lake build "+PEqualNP.CoAllSeven3004"
+      - name: Verify CoTableEight4482
+        if: always()
+        working-directory: project/lean
+        timeout-minutes: 6
+        run: sudo systemd-run --scope --quiet --collect -p MemoryMax=8G setpriv --reuid="$(id -u)" --regid="$(id -g)" --clear-groups env HOME="$HOME" PATH="$PATH" LEAN_NUM_THREADS=2 timeout --kill-after=10s 260 /usr/bin/time -f 'module_seconds=%e rss_kib=%M' lake build "+PEqualNP.CoTableEight4482"
+      - name: Verify CoGeomCare4055
+        if: always()
+        working-directory: project/lean
+        timeout-minutes: 6
+        run: sudo systemd-run --scope --quiet --collect -p MemoryMax=8G setpriv --reuid="$(id -u)" --regid="$(id -g)" --clear-groups env HOME="$HOME" PATH="$PATH" LEAN_NUM_THREADS=2 timeout --kill-after=10s 260 /usr/bin/time -f 'module_seconds=%e rss_kib=%M' lake build "+PEqualNP.CoGeomCare4055"
+      - name: Verify CoPetersenWedges4938
+        if: always()
+        working-directory: project/lean
+        timeout-minutes: 6
+        run: sudo systemd-run --scope --quiet --collect -p MemoryMax=8G setpriv --reuid="$(id -u)" --regid="$(id -g)" --clear-groups env HOME="$HOME" PATH="$PATH" LEAN_NUM_THREADS=2 timeout --kill-after=10s 260 /usr/bin/time -f 'module_seconds=%e rss_kib=%M' lake build "+PEqualNP.CoPetersenWedges4938"
+      - name: Verify Co4358ColorRowBench
+        if: always()
+        working-directory: project/lean
+        timeout-minutes: 6
+        run: sudo systemd-run --scope --quiet --collect -p MemoryMax=8G setpriv --reuid="$(id -u)" --regid="$(id -g)" --clear-groups env HOME="$HOME" PATH="$PATH" LEAN_NUM_THREADS=2 timeout --kill-after=10s 260 /usr/bin/time -f 'module_seconds=%e rss_kib=%M' lake build "+PEqualNP.Co4358ColorRowBench"
+      - name: Verify Co4358ColorBench
+        if: always()
+        working-directory: project/lean
+        timeout-minutes: 6
+        run: sudo systemd-run --scope --quiet --collect -p MemoryMax=8G setpriv --reuid="$(id -u)" --regid="$(id -g)" --clear-groups env HOME="$HOME" PATH="$PATH" LEAN_NUM_THREADS=2 timeout --kill-after=10s 260 /usr/bin/time -f 'module_seconds=%e rss_kib=%M' lake build "+PEqualNP.Co4358ColorBench"
+      - name: Verify CoActualTight4482
+        if: always()
+        working-directory: project/lean
+        timeout-minutes: 6
+        run: sudo systemd-run --scope --quiet --collect -p MemoryMax=8G setpriv --reuid="$(id -u)" --regid="$(id -g)" --clear-groups env HOME="$HOME" PATH="$PATH" LEAN_NUM_THREADS=2 timeout --kill-after=10s 260 /usr/bin/time -f 'module_seconds=%e rss_kib=%M' lake build "+PEqualNP.CoActualTight4482"
