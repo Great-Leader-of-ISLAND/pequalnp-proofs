@@ -1,0 +1,5 @@
+import PEqualNP.Co1669Branches
+import PEqualNP.Outside.L_meta_1667
+
+theorem CoActual1669.original_if (cert : CoThetaBits.certifiedSearch 10 CoThetaBits.raw=false) : ∀ C : PEqualNP.CircuitLowerBounds.Circuit, PEqualNP.MetaComplexity.FanInTwo C → (∀ y : Fin 9 → Bool, (C.wires (List.ofFn y)).getD 9 false = (y 0 && y 3)) → PEqualNP.MetaComplexity.circuitFun 9 C = (fun x : Fin 9 → Bool => (x 0 && x 1) || (x 1 && x 2) || (x 2 && x 3) || (x 3 && x 4) || (x 4 && x 0) || (x 0 && x 5) || (x 1 && x 6) || (x 2 && x 7) || (x 3 && x 8) || (x 5 && x 7) || (x 6 && x 8) || (x 8 && x 5)) → 16 ≤ C.size :=
+  CoActual1669.original_given PEqualNP.Outside.L_meta_1667 cert
