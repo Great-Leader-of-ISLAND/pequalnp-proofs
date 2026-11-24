@@ -1,0 +1,149 @@
+name: Verify both physical roots and the eight-vertex restriction
+on:
+  push:
+    branches: [co-p2-physical-roots-2305]
+permissions:
+  contents: write
+jobs:
+  lean:
+    if: github.repository == 'Great-Leader-of-ISLAND/pequalnp-proofs' && github.event.repository.private == false
+    runs-on: ubuntu-24.04
+    timeout-minutes: 75
+    env:
+      LEAN_NUM_THREADS: 2
+    steps:
+      - name: Fetch this exact public commit
+        run: |
+          git init -q
+          git fetch -q --depth 1 "https://github.com/${GITHUB_REPOSITORY}.git" "$GITHUB_SHA"
+          git checkout -q --detach FETCH_HEAD
+          git init -q project
+          git -C project fetch -q --depth=1 --no-tags https://github.com/open-goat/pequalnp-proofs.git 81e5465e8c2b4c3669bab9d44f1580b10d63ce47
+          git -C project checkout -q --detach FETCH_HEAD
+          cp research/Co*.lean project/lean/PEqualNP/
+      - name: Install pinned Lean
+        working-directory: project/lean
+        run: |
+          curl -fsSL --retry 3 -o "$RUNNER_TEMP/elan.tar.gz" https://github.com/leanprover/elan/releases/download/v4.4.0/elan-x86_64-unknown-linux-gnu.tar.gz
+          echo '0e8250aa2be86c7af929ade68db617af9edc8b9ccf6eaf5ece228250d0d032e2  '"$RUNNER_TEMP/elan.tar.gz" | sha256sum -c -
+          tar xzf "$RUNNER_TEMP/elan.tar.gz" -C "$RUNNER_TEMP" elan-init
+          "$RUNNER_TEMP/elan-init" -y --no-modify-path --default-toolchain none
+          export PATH="$HOME/.elan/bin:$PATH"
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+          elan toolchain install "$(cat lean-toolchain)"
+          lean --version
+      - name: Restore the pinned Mathlib
+        working-directory: project/lean
+        timeout-minutes: 7
+        run: lake exe cache get Mathlib
+      - name: Generate both full roots from canonical gates and the upstream statement
+        id: assemble
+        working-directory: research
+        timeout-minutes: 5
+        run: |
+          set -euo pipefail
+          cert="$RUNNER_TEMP/cert"
+          mkdir "$cert"
+          curl -fsSL --compressed --retry 2 --max-time 40 --max-filesize 33554432 https://data.pequalnp.com/data/desk/gaps.json -o "$RUNNER_TEMP/catalog.json"
+          c++ -std=c++17 -O3 4482-junction-export.cpp -o "$RUNNER_TEMP/emit"
+          for k in 0 1; do
+            prefix="$RUNNER_TEMP/g$k"
+            "$RUNNER_TEMP/emit" "$k" "$prefix.tsv"
+            python3 4482-junction-audit.py "$prefix.tsv.graph" --binary "$prefix.bin"
+            python3 4482-junction-fixed.py "$prefix.bin" "$cert/CoJunctionArchive$k.lean"
+            python3 4482-junction-complete.py "$prefix.tsv" "$prefix.bin" "CoJunctionArchive$k" "$cert/CoWholeRoot$k.lean" --chunk 128
+            python3 4482-junction-complete.py "$prefix.tsv" "$prefix.bin" "CoJunctionArchive$k" "$cert/CoActualFirst$k.lean" --start 0 --count 1
+            python3 4482-junction-complete.py "$prefix.tsv" "$prefix.bin" "CoJunctionArchive$k" "$cert/CoActualLeaf$k.lean" --first-leaf
+          done
+          cp "$cert"/Co*.lean "$GITHUB_WORKSPACE/project/lean/PEqualNP/"
+          status=0
+          python3 4482-assemble-physical.py "$RUNNER_TEMP/catalog.json" "$cert/CoWholeRoot0.lean" "$cert/CoWholeRoot1.lean" "$cert/L_meta_4482.lean" --guard "$GITHUB_WORKSPACE/project/.github/scripts/outside-guard.mjs" --base "$GITHUB_WORKSPACE/project" || status=$?
+          if [[ -f "$cert/L_meta_4482.lean" ]]; then echo 'source=ready' >> "$GITHUB_OUTPUT"; fi
+          exit "$status"
+      - name: Preserve only the five generated mathematical source files on this public fork
+        if: always() && steps.assemble.outputs.source == 'ready'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REPOSITORY" = 'Great-Leader-of-ISLAND/pequalnp-proofs'
+          mathdir="$RUNNER_TEMP/public-source"
+          mkdir "$mathdir"
+          for name in CoJunctionArchive0 CoJunctionArchive1 CoWholeRoot0 CoWholeRoot1 L_meta_4482; do
+            f="$RUNNER_TEMP/cert/$name.lean"
+            test -f "$f" && test ! -L "$f" && test "$(wc -c < "$f")" -le 2097152
+            cp "$f" "$mathdir/"
+          done
+          git -C "$mathdir" init -q
+          git -C "$mathdir" add -- '*.lean'
+          test "$(git -C "$mathdir" diff --cached --name-only | wc -l)" -eq 5
+          git -C "$mathdir" -c user.name='github-actions[bot]' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' commit -qm 'Record both generated graph roots for independent kernel verification'
+          gh auth setup-git --hostname github.com
+          git -C "$mathdir" push -q "https://github.com/$GITHUB_REPOSITORY.git" "HEAD:refs/heads/co-results-4482-$GITHUB_RUN_ID"
+          git config --global --unset-all 'credential.https://github.com.helper' || true
+          sha256sum "$mathdir"/*.lean
+      - name: Test the exact seeded eight-vertex lower-bound search
+        if: always()
+        working-directory: research
+        timeout-minutes: 5
+        run: |
+          c++ -O3 -std=c++17 1677-seeded-eight.cpp -o "$RUNNER_TEMP/minor"
+          "$RUNNER_TEMP/minor" --control
+          "$RUNNER_TEMP/minor" 0 0 100000 25
+          "$RUNNER_TEMP/minor" 1 0 100000 80
+          "$RUNNER_TEMP/minor" 1 0 16 45
+      - name: Verify Co1677ThreeAnd
+        if: always()
+        working-directory: project/lean
+        timeout-minutes: 6
+        run: sudo systemd-run --scope --quiet --collect -p MemoryMax=9G setpriv --reuid="$(id -u)" --regid="$(id -g)" --clear-groups env HOME="$HOME" PATH="$PATH" LEAN_NUM_THREADS=2 timeout --kill-after=10s 300 /usr/bin/time -f 'module_seconds=%e rss_kib=%M' lake build "+PEqualNP.Co1677ThreeAnd"
+      - name: Verify Co1677Or26
+        if: always()
+        working-directory: project/lean
+        timeout-minutes: 6
+        run: sudo systemd-run --scope --quiet --collect -p MemoryMax=9G setpriv --reuid="$(id -u)" --regid="$(id -g)" --clear-groups env HOME="$HOME" PATH="$PATH" LEAN_NUM_THREADS=2 timeout --kill-after=10s 300 /usr/bin/time -f 'module_seconds=%e rss_kib=%M' lake build "+PEqualNP.Co1677Or26"
+      - name: Verify CoJunctionComplete4482
+        if: always()
+        working-directory: project/lean
+        timeout-minutes: 6
+        run: sudo systemd-run --scope --quiet --collect -p MemoryMax=9G setpriv --reuid="$(id -u)" --regid="$(id -g)" --clear-groups env HOME="$HOME" PATH="$PATH" LEAN_NUM_THREADS=2 timeout --kill-after=10s 300 /usr/bin/time -f 'module_seconds=%e rss_kib=%M' lake build "+PEqualNP.CoJunctionComplete4482"
+      - name: Verify CoActualFirst0
+        if: always()
+        working-directory: project/lean
+        timeout-minutes: 6
+        run: sudo systemd-run --scope --quiet --collect -p MemoryMax=9G setpriv --reuid="$(id -u)" --regid="$(id -g)" --clear-groups env HOME="$HOME" PATH="$PATH" LEAN_NUM_THREADS=2 timeout --kill-after=10s 300 /usr/bin/time -f 'module_seconds=%e rss_kib=%M' lake build "+PEqualNP.CoActualFirst0"
+      - name: Verify CoActualLeaf0
+        if: always()
+        working-directory: project/lean
+        timeout-minutes: 6
+        run: sudo systemd-run --scope --quiet --collect -p MemoryMax=9G setpriv --reuid="$(id -u)" --regid="$(id -g)" --clear-groups env HOME="$HOME" PATH="$PATH" LEAN_NUM_THREADS=2 timeout --kill-after=10s 300 /usr/bin/time -f 'module_seconds=%e rss_kib=%M' lake build "+PEqualNP.CoActualLeaf0"
+      - name: Verify CoActualFirst1
+        if: always()
+        working-directory: project/lean
+        timeout-minutes: 6
+        run: sudo systemd-run --scope --quiet --collect -p MemoryMax=9G setpriv --reuid="$(id -u)" --regid="$(id -g)" --clear-groups env HOME="$HOME" PATH="$PATH" LEAN_NUM_THREADS=2 timeout --kill-after=10s 300 /usr/bin/time -f 'module_seconds=%e rss_kib=%M' lake build "+PEqualNP.CoActualFirst1"
+      - name: Verify CoActualLeaf1
+        if: always()
+        working-directory: project/lean
+        timeout-minutes: 6
+        run: sudo systemd-run --scope --quiet --collect -p MemoryMax=9G setpriv --reuid="$(id -u)" --regid="$(id -g)" --clear-groups env HOME="$HOME" PATH="$PATH" LEAN_NUM_THREADS=2 timeout --kill-after=10s 300 /usr/bin/time -f 'module_seconds=%e rss_kib=%M' lake build "+PEqualNP.CoActualLeaf1"
+      - name: Verify Co5326Transversal
+        if: always()
+        working-directory: project/lean
+        timeout-minutes: 6
+        run: sudo systemd-run --scope --quiet --collect -p MemoryMax=9G setpriv --reuid="$(id -u)" --regid="$(id -g)" --clear-groups env HOME="$HOME" PATH="$PATH" LEAN_NUM_THREADS=2 timeout --kill-after=10s 300 /usr/bin/time -f 'module_seconds=%e rss_kib=%M' lake build "+PEqualNP.Co5326Transversal"
+      - name: Verify Co5326Neighborhood
+        if: always()
+        working-directory: project/lean
+        timeout-minutes: 6
+        run: sudo systemd-run --scope --quiet --collect -p MemoryMax=9G setpriv --reuid="$(id -u)" --regid="$(id -g)" --clear-groups env HOME="$HOME" PATH="$PATH" LEAN_NUM_THREADS=2 timeout --kill-after=10s 300 /usr/bin/time -f 'module_seconds=%e rss_kib=%M' lake build "+PEqualNP.Co5326Neighborhood"
+      - name: Verify CoAlarmMonomial1481
+        if: always()
+        working-directory: project/lean
+        timeout-minutes: 6
+        run: sudo systemd-run --scope --quiet --collect -p MemoryMax=9G setpriv --reuid="$(id -u)" --regid="$(id -g)" --clear-groups env HOME="$HOME" PATH="$PATH" LEAN_NUM_THREADS=2 timeout --kill-after=10s 300 /usr/bin/time -f 'module_seconds=%e rss_kib=%M' lake build "+PEqualNP.CoAlarmMonomial1481"
+      - name: Verify CoAlarmNamed1481
+        if: always()
+        working-directory: project/lean
+        timeout-minutes: 6
+        run: sudo systemd-run --scope --quiet --collect -p MemoryMax=9G setpriv --reuid="$(id -u)" --regid="$(id -g)" --clear-groups env HOME="$HOME" PATH="$PATH" LEAN_NUM_THREADS=2 timeout --kill-after=10s 300 /usr/bin/time -f 'module_seconds=%e rss_kib=%M' lake build "+PEqualNP.CoAlarmNamed1481"
