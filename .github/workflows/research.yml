@@ -1,0 +1,62 @@
+name: Theta bounded kernel probes
+on:
+  push:
+    branches: [co-theta1924-uniq-0958]
+permissions:
+  contents: read
+jobs:
+  solve:
+    if: github.repository == 'Great-Leader-of-ISLAND/pequalnp-proofs' && github.event.repository.private == false
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - name: Fetch only the public mathematical sources
+        run: |
+          set -euo pipefail
+          git init -q
+          git fetch -q --depth 1 "https://github.com/${GITHUB_REPOSITORY}.git" "$GITHUB_SHA"
+          git checkout -q --detach FETCH_HEAD
+      - name: Check the straight-line normalization and live-set extraction
+        run: |
+          set -euo pipefail
+          curl -fsSL --max-time 90 -o "$RUNNER_TEMP/elan.tar.gz" https://github.com/leanprover/elan/releases/download/v4.4.0/elan-x86_64-unknown-linux-gnu.tar.gz
+          echo '0e8250aa2be86c7af929ade68db617af9edc8b9ccf6eaf5ece228250d0d032e2  '"$RUNNER_TEMP/elan.tar.gz" | sha256sum -c -
+          tar xzf "$RUNNER_TEMP/elan.tar.gz" -C "$RUNNER_TEMP" elan-init
+          "$RUNNER_TEMP/elan-init" -y --no-modify-path --default-toolchain none
+          export PATH="$HOME/.elan/bin:$PATH"
+          elan toolchain install leanprover/lean4:v4.36.0
+          src="$GITHUB_WORKSPACE/research"
+          python3 -B "$src/theta1924small.py" --mask 0xa12000000000000000000000002931200000000020420008080003a7048000000000000000000000070b04000000000810000141000065e410000000004060000c08002569408810100801030080602008bd3c03800000000000000000002f00240000000028000809000003e50090000000080000018c01801000004108010400000002000100480000050004819100c8b6002881800040201014d70002486040383c0c2680000000000000000000003b24000000000050000009080023e4900000000008200001008000109040069d0440c1604000000000d860001000000100100012088001804005b814020502404260380d1d05800000000009800001a024282d880002480000ac80000e88a123f3800060800008a98101c690001a7402176d000019020603f000015900082ee0a207d6080927a109a6fc31269f --base "$src/CoThetaFreeInstance.lean" --out "$RUNNER_TEMP/Small.lean" --probes "$RUNNER_TEMP/probes.txt"
+          cd "$RUNNER_TEMP"
+          cat Small.lean probes.txt "$src/CoThetaNatGuard.lean" > Bench.lean
+          timeout -k 3s 90s lean +leanprover/lean4:v4.36.0 -M 1800 -o Bench.olean Bench.lean
+          export LEAN_PATH="$RUNNER_TEMP"
+          export LEAN_NUM_THREADS=1
+          lean +leanprover/lean4:v4.36.0 --help | sed -n '1,43p'
+          affinity=$(python3 -c 'import os; print(min(os.sched_getaffinity(0)))')
+          for mode in decide7 decide8 decide9 runtime10; do
+            echo 'import Bench' > Check.lean
+            echo 'open CoThetaBits' >> Check.lean
+            echo 'set_option maxHeartbeats 0' >> Check.lean
+            echo 'set_option maxRecDepth 4000' >> Check.lean
+            case "$mode" in
+              decide5) echo 'theorem checked : certifiedSearch 5 probe5 = false := by decide +kernel' >> Check.lean ;;
+              decide6) echo 'theorem checked : certifiedSearch 6 probe6 = false := by decide +kernel' >> Check.lean ;;
+              decide7) echo 'theorem checked : CoNatBench.guardedSearch 7 (probe7.map CoNatBench.project) = false := by decide +kernel' >> Check.lean ;;
+              decide9) echo 'theorem checked : CoNatBench.guardedSearch 9 (probe9.map CoNatBench.project) = false := by decide +kernel' >> Check.lean ;;
+              decide8) echo 'theorem checked : CoNatBench.guardedSearch 8 (probe8.map CoNatBench.project) = false := by decide +kernel' >> Check.lean ;;
+              runtime10) echo '#eval CoNatBench.guardedSearch 10 (raw.map CoNatBench.project)' >> Check.lean ;;
+              baseline) echo 'theorem checked : certifiedSearch 0 probe4 = false := rfl' >> Check.lean ;;
+              rfl4) echo 'theorem checked : certifiedSearch 4 probe4 = false := rfl' >> Check.lean ;;
+              decide4) echo 'theorem checked : certifiedSearch 4 probe4 = false := by decide +kernel' >> Check.lean ;;
+              rfl5) echo 'theorem checked : certifiedSearch 5 probe5 = false := rfl' >> Check.lean ;;
+              runtime) echo '#eval certifiedSearch 4 probe4' >> Check.lean ;;
+            esac
+            if test "$mode" != runtime10; then echo '#print axioms checked' >> Check.lean; fi
+            set +e
+            timeout -k 3s 45s /usr/bin/time -f 'seconds=%e rss_kib=%M' taskset -c "$affinity" lean +leanprover/lean4:v4.36.0 -j 1 -s 2048 -M 4000 Check.lean > "mode-$mode.log" 2>&1
+            status=$?
+            set -e
+            echo "mode=$mode status=$status"
+            tail -8 "mode-$mode.log"
+          done
