@@ -33,5 +33,5 @@ jobs:
         run: |
           lake exe cache get PEqualNP.CoDiagonalInputs PEqualNP.CoDiagonalDensity
           lake build +PEqualNP.CoDiagonalInputs +PEqualNP.CoDiagonalDensity
-          printf '%s\n' 'import PEqualNP.CoDiagonalInputs' 'import PEqualNP.CoDiagonalDensity' '#print axioms PEqualNP.Research.DiagonalInputs.joint_budget' '#print axioms PEqualNP.Research.CoDiagonalDensity.bound816' > "$RUNNER_TEMP/PrefixAudit.lean"
+          printf '%s\n' 'import PEqualNP.CoDiagonalInputs' 'import PEqualNP.CoDiagonalDensity' '#print axioms PEqualNP.Research.DiagonalInputs.incident_endpoints' '#print axioms PEqualNP.Research.CoDiagonalDensity.bound816' > "$RUNNER_TEMP/PrefixAudit.lean"
           lake env lean "$RUNNER_TEMP/PrefixAudit.lean"

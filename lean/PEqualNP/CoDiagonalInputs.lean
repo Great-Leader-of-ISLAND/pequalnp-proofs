@@ -50,4 +50,46 @@ theorem joint_budget {n J : ℕ} (C : Circuit) (hm : Monotone2 C)
   change T.card ≤ C.gates.length + 2*J
   omega
 
+
+private def pair (N : ℕ) (p l : Fin N) (v : Fin (N+N)) : Bool :=
+  decide (v = Fin.castAdd N p ∨ v = Fin.natAdd N l)
+
+private def singleton {n : ℕ} (p v : Fin n) : Bool := decide (v=p)
+
+private theorem split_ne {N : ℕ} (p l : Fin N) : Fin.castAdd N p ≠ Fin.natAdd N l := by
+  intro eq
+  have hh := congrArg Fin.val eq
+  change p.val = N + l.val at hh
+  omega
+
+theorem incident_endpoints {N J : ℕ} (C : Circuit) (hm : Monotone2 C)
+    (I : Fin N → Fin N → Prop) (a b : Fin J → ℕ) (T : Finset (Fin N × Fin N))
+    (hit : ∀ e ∈ T, ∃ j, read C (a j) (pair N e.1 e.2) = true ∧
+      read C (b j) (pair N e.1 e.2) = true)
+    (sound : ∀ j (x : Fin (N+N) → Bool), read C (a j) x = true → read C (b j) x = true →
+      ∃ p l, I p l ∧ x (Fin.castAdd N p) = true ∧ x (Fin.natAdd N l) = true) :
+    (T.biUnion (fun e => ({Fin.castAdd N e.1, Fin.natAdd N e.2} : Finset (Fin (N+N))))).card
+      ≤ C.size + 2*J := by
+  classical
+  apply joint_budget C hm a b
+  intro i hi
+  obtain ⟨e,he,hi⟩ := Finset.mem_biUnion.mp hi
+  obtain ⟨j,hj⟩ := hit e he
+  simp only [Finset.mem_insert, Finset.mem_singleton] at hi
+  rcases hi with h | h
+  · subst i
+    refine ⟨j, pair N e.1 e.2, singleton (Fin.natAdd N e.2), ?_, hj, ?_⟩
+    · intro v hv
+      simp [pair, singleton, hv]
+    · rintro ⟨ha,hb⟩
+      obtain ⟨p,l,hI,hp,hl⟩ := sound j _ ha hb
+      simpa [singleton, split_ne p e.2] using hp
+  · subst i
+    refine ⟨j, pair N e.1 e.2, singleton (Fin.castAdd N e.1), ?_, hj, ?_⟩
+    · intro v hv
+      simp [pair, singleton, hv]
+    · rintro ⟨ha,hb⟩
+      obtain ⟨p,l,hI,hp,hl⟩ := sound j _ ha hb
+      simpa [singleton, (split_ne e.1 l).symm] using hl
+
 end PEqualNP.Research.DiagonalInputs
