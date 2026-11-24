@@ -1,0 +1,96 @@
+name: Verify independent reductions and pointwise cut models
+on:
+  push:
+    branches: [co-p2-wedge-and-shared-certificates-2144]
+permissions:
+  contents: read
+jobs:
+  lean:
+    if: github.repository == 'Great-Leader-of-ISLAND/pequalnp-proofs' && github.event.repository.private == false
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    env:
+      LEAN_NUM_THREADS: 2
+    steps:
+      - name: Fetch this exact public commit
+        run: |
+          git init -q
+          git fetch -q --depth 1 "https://github.com/${GITHUB_REPOSITORY}.git" "$GITHUB_SHA"
+          git checkout -q --detach FETCH_HEAD
+          git init -q project
+          git -C project fetch -q --depth=1 --no-tags https://github.com/open-goat/pequalnp-proofs.git 048b39bb2c5b2c21da06d44218d16366086a68d9
+          git -C project checkout -q --detach FETCH_HEAD
+          cp research/Co*.lean project/lean/PEqualNP/
+      - name: Install pinned Lean
+        working-directory: project/lean
+        run: |
+          curl -fsSL --retry 3 -o "$RUNNER_TEMP/elan.tar.gz" https://github.com/leanprover/elan/releases/download/v4.4.0/elan-x86_64-unknown-linux-gnu.tar.gz
+          echo '0e8250aa2be86c7af929ade68db617af9edc8b9ccf6eaf5ece228250d0d032e2  '"$RUNNER_TEMP/elan.tar.gz" | sha256sum -c -
+          tar xzf "$RUNNER_TEMP/elan.tar.gz" -C "$RUNNER_TEMP" elan-init
+          "$RUNNER_TEMP/elan-init" -y --no-modify-path --default-toolchain none
+          export PATH="$HOME/.elan/bin:$PATH"
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+          elan toolchain install "$(cat lean-toolchain)"
+          lean --version
+      - name: Restore the pinned Mathlib
+        working-directory: project/lean
+        timeout-minutes: 7
+        run: lake exe cache get Mathlib
+      - name: Check the last bank price using labeled positive and negative rows
+        run: |
+          cd research
+          c++ -O2 -std=c++17 3004-six-context.cpp -o "$RUNNER_TEMP/six"
+          python3 3004-orbit-input.py 6 > "$RUNNER_TEMP/orbits6"
+          wc -l "$RUNNER_TEMP/orbits6"
+          sha256sum "$RUNNER_TEMP/orbits6"
+          timeout -k 3s 165s "$RUNNER_TEMP/six" 0 100000000 150 < "$RUNNER_TEMP/orbits6" > "$RUNNER_TEMP/six.log"
+          tail -2 "$RUNNER_TEMP/six.log"
+          python3 3004-bank-leaf-check.py --k 6 --log "$RUNNER_TEMP/six.log"
+      - name: Check representative classes of tightly packed physical states
+        if: always()
+        run: |
+          cd research
+          c++ -O3 -std=c++17 4482-table-export.cpp -o "$RUNNER_TEMP/cuts"
+          "$RUNNER_TEMP/cuts" 0 "$RUNNER_TEMP/seed0.tsv"
+          python3 4482-table-groups.py "$RUNNER_TEMP/seed0.tsv" "$RUNNER_TEMP/groups.json" --count 512 --max-checks 3000 --seconds 45
+          python3 4482-table-group-lean.py "$RUNNER_TEMP/seed0.tsv" "$RUNNER_TEMP/groups.json" "$GITHUB_WORKSPACE/project/lean/PEqualNP/CoFourGroups4482.lean" --count 4
+      - name: Verify CoBankChecked3004
+        if: always()
+        working-directory: project/lean
+        timeout-minutes: 6
+        run: sudo systemd-run --scope --quiet --collect -p MemoryMax=8G setpriv --reuid="$(id -u)" --regid="$(id -g)" --clear-groups env HOME="$HOME" PATH="$PATH" LEAN_NUM_THREADS=2 timeout --kill-after=10s 260 /usr/bin/time -f 'module_seconds=%e rss_kib=%M' lake build "+PEqualNP.CoBankChecked3004"
+      - name: Verify CoPetersenWedges4938
+        if: always()
+        working-directory: project/lean
+        timeout-minutes: 6
+        run: sudo systemd-run --scope --quiet --collect -p MemoryMax=8G setpriv --reuid="$(id -u)" --regid="$(id -g)" --clear-groups env HOME="$HOME" PATH="$PATH" LEAN_NUM_THREADS=2 timeout --kill-after=10s 260 /usr/bin/time -f 'module_seconds=%e rss_kib=%M' lake build "+PEqualNP.CoPetersenWedges4938"
+      - name: Verify CoLeafBudget4938
+        if: always()
+        working-directory: project/lean
+        timeout-minutes: 6
+        run: sudo systemd-run --scope --quiet --collect -p MemoryMax=8G setpriv --reuid="$(id -u)" --regid="$(id -g)" --clear-groups env HOME="$HOME" PATH="$PATH" LEAN_NUM_THREADS=2 timeout --kill-after=10s 260 /usr/bin/time -f 'module_seconds=%e rss_kib=%M' lake build "+PEqualNP.CoLeafBudget4938"
+      - name: Verify CoPortCheckMove4482
+        if: always()
+        working-directory: project/lean
+        timeout-minutes: 6
+        run: sudo systemd-run --scope --quiet --collect -p MemoryMax=8G setpriv --reuid="$(id -u)" --regid="$(id -g)" --clear-groups env HOME="$HOME" PATH="$PATH" LEAN_NUM_THREADS=2 timeout --kill-after=10s 260 /usr/bin/time -f 'module_seconds=%e rss_kib=%M' lake build "+PEqualNP.CoPortCheckMove4482"
+      - name: Verify Co4358ColorGroundBench
+        if: always()
+        working-directory: project/lean
+        timeout-minutes: 6
+        run: sudo systemd-run --scope --quiet --collect -p MemoryMax=8G setpriv --reuid="$(id -u)" --regid="$(id -g)" --clear-groups env HOME="$HOME" PATH="$PATH" LEAN_NUM_THREADS=2 timeout --kill-after=10s 260 /usr/bin/time -f 'module_seconds=%e rss_kib=%M' lake build "+PEqualNP.Co4358ColorGroundBench"
+      - name: Verify Co4358ColorRowBench
+        if: always()
+        working-directory: project/lean
+        timeout-minutes: 6
+        run: sudo systemd-run --scope --quiet --collect -p MemoryMax=8G setpriv --reuid="$(id -u)" --regid="$(id -g)" --clear-groups env HOME="$HOME" PATH="$PATH" LEAN_NUM_THREADS=2 timeout --kill-after=10s 260 /usr/bin/time -f 'module_seconds=%e rss_kib=%M' lake build "+PEqualNP.Co4358ColorRowBench"
+      - name: Verify CoActualTight4482
+        if: always()
+        working-directory: project/lean
+        timeout-minutes: 6
+        run: sudo systemd-run --scope --quiet --collect -p MemoryMax=8G setpriv --reuid="$(id -u)" --regid="$(id -g)" --clear-groups env HOME="$HOME" PATH="$PATH" LEAN_NUM_THREADS=2 timeout --kill-after=10s 260 /usr/bin/time -f 'module_seconds=%e rss_kib=%M' lake build "+PEqualNP.CoActualTight4482"
+      - name: Verify CoFourGroups4482
+        if: always()
+        working-directory: project/lean
+        timeout-minutes: 6
+        run: sudo systemd-run --scope --quiet --collect -p MemoryMax=8G setpriv --reuid="$(id -u)" --regid="$(id -g)" --clear-groups env HOME="$HOME" PATH="$PATH" LEAN_NUM_THREADS=2 timeout --kill-after=10s 260 /usr/bin/time -f 'module_seconds=%e rss_kib=%M' lake build "+PEqualNP.CoFourGroups4482"
