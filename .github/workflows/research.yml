@@ -1,0 +1,26 @@
+name: Two bounded first-gate experiments
+on:
+  push:
+    branches: [co-monotone-theta-0830]
+permissions:
+  contents: read
+jobs:
+  solve:
+    if: github.repository == 'Great-Leader-of-ISLAND/pequalnp-proofs' && github.event.repository.private == false
+    runs-on: ubuntu-24.04
+    timeout-minutes: 22
+    steps:
+      - name: Fetch the research program and certificate checker
+        run: |
+          set -euo pipefail
+          git init -q
+          git fetch -q --depth 1 "https://github.com/${GITHUB_REPOSITORY}.git" "$GITHUB_SHA"
+          git checkout -q --detach FETCH_HEAD
+      - name: Nine-variable monotone frontier
+        working-directory: research
+        run: python3 -B monotone2159.py --seconds 1.5 --total 180
+      - name: Seven-variable theta with a first inverter
+        working-directory: research
+        run: |
+          python3 -B theta-first-not.py --seconds 45 --control --further-nots 0
+          python3 -B theta-first-not.py --seconds 45 --further-nots 1
