@@ -1,0 +1,58 @@
+name: Petersen shared semantic prefix
+on:
+  push:
+    branches: [co-formula1667-0502]
+permissions:
+  contents: read
+jobs:
+  lean:
+    if: github.repository == 'Great-Leader-of-ISLAND/pequalnp-proofs' && github.event.repository.private == false
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    env:
+      LEAN_NUM_THREADS: 2
+    steps:
+      - name: Fetch this exact public commit
+        run: |
+          git init -q
+          git fetch -q --depth 1 "https://github.com/${GITHUB_REPOSITORY}.git" "$GITHUB_SHA"
+          git checkout -q --detach FETCH_HEAD
+          git init -q project
+          git -C project fetch -q --depth=1 --no-tags https://github.com/brilliant-hq/pequalnp-proofs.git 033116c09946d50e0e3883ee24915ea88b37d7b7
+          git -C project checkout -q --detach FETCH_HEAD
+          cp research/CoPetersenRaw.lean project/lean/PEqualNP/CoPetersenRaw.lean
+          cp research/CoPetersenDimacs.lean project/lean/PEqualNP/CoPetersenDimacs.lean
+          cp research/CoPetersenFormula.lean project/lean/PEqualNP/CoPetersenFormula.lean
+          cp research/CoPetersenNumbered.lean project/lean/PEqualNP/CoPetersenNumbered.lean
+          cp research/CoPetersenCnf.lean project/lean/PEqualNP/CoPetersenCnf.lean
+      - name: Install pinned Lean
+        working-directory: project/lean
+        run: |
+          curl -fsSL --retry 3 -o "$RUNNER_TEMP/elan.tar.gz" https://github.com/leanprover/elan/releases/download/v4.4.0/elan-x86_64-unknown-linux-gnu.tar.gz
+          echo '0e8250aa2be86c7af929ade68db617af9edc8b9ccf6eaf5ece228250d0d032e2  '"$RUNNER_TEMP/elan.tar.gz" | sha256sum -c -
+          tar xzf "$RUNNER_TEMP/elan.tar.gz" -C "$RUNNER_TEMP" elan-init
+          "$RUNNER_TEMP/elan-init" -y --no-modify-path --default-toolchain none
+          export PATH="$HOME/.elan/bin:$PATH"
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+          elan toolchain install "$(cat lean-toolchain)"
+          lean --version
+      - name: Build the research file with the pinned Mathlib
+        working-directory: project/lean
+        run: |
+          lake exe cache get Mathlib
+          lake build +PEqualNP.CoPetersenFormula
+          printf '%s\n' 'import PEqualNP.CoPetersenFormula' '#print axioms PEqualNP.Research.PetersenFormula.raw_circuit_models_35' '#print axioms PEqualNP.Research.PetersenFormula.of_raw35_unsat' '#print axioms PEqualNP.Research.PetersenFormula.raw_circuit_models_dimacs35' > "$RUNNER_TEMP/Audit.lean"
+          lake env lean "$RUNNER_TEMP/Audit.lean"
+          cat > "$RUNNER_TEMP/Dump.lean" <<'LEAN'
+          import PEqualNP.CoPetersenFormula
+          open PEqualNP.Research.PetersenFormula
+          def main : IO Unit := do
+            let clauses := dimacs35
+            IO.println s!"p cnf 2570 {clauses.length}"
+            for c in clauses do
+              IO.println (String.intercalate " " (c.map toString) ++ " 0")
+          LEAN
+          lake env lean --run "$RUNNER_TEMP/Dump.lean" > "$RUNNER_TEMP/lean.cnf"
+          python3 ../../research/petersen1667.py --mode raw --seed frontier --encode-only --directory "$RUNNER_TEMP/raw"
+          sha256sum "$RUNNER_TEMP/lean.cnf" "$RUNNER_TEMP/raw/current.cnf"
+          cmp "$RUNNER_TEMP/lean.cnf" "$RUNNER_TEMP/raw/current.cnf"
