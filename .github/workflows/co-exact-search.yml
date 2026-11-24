@@ -1,14 +1,14 @@
-name: Co circuit shard search
+name: Co single-star formula search
 on:
   push:
-    branches: [co-first13-20261124-0257]
+    branches: [co-star13-20261124-0317]
 permissions:
   contents: read
 jobs:
   solve:
     if: github.repository == 'Great-Leader-of-ISLAND/pequalnp-proofs' && github.event.repository.private == false
     runs-on: ubuntu-24.04
-    timeout-minutes: 100
+    timeout-minutes: 38
     steps:
       - name: Fetch the research program and certificate checker
         run: |
@@ -24,13 +24,11 @@ jobs:
           git -C drat fetch -q --depth 1 https://github.com/marijnheule/drat-trim.git 2e3b2dc0ecf938addbd779d42877b6ed69d9a985
           git -C drat checkout -q --detach FETCH_HEAD
           cc -O2 -DNDEBUG drat/drat-trim.c -o "$RUNNER_TEMP/drat-check"
-      - name: Verify the position condition against full positive and negative controls
+      - name: Check the finite coloring restrictions and run the selected trees sequentially
         run: |
-          set -eu
-          for pos in 13; do
-            for extra in '' --bad-position; do
-              python3 research/search13.py --position "$pos" --cadical "$RUNNER_TEMP/solver/usr/bin/cadical" --control research/graph1342-control22.json --timeout 8 $extra
-            done
-          done
-      - name: Search entire assigned position for 3600 seconds and independently check any DRAT certificate
-        run: bash research/run-position13.sh 13
+          set -euo pipefail
+          curl --retry 2 --max-time 20 -fsSL https://data.pequalnp.com/data/desk/gaps.json -o "$RUNNER_TEMP/desk.json"
+          python3 -c "import json,sys;d=json.load(open(sys.argv[1]));g=next(g for g in d['gaps'] if g['id']=='L-meta-1343');assert 'FIRSTJ=13)' in g['shard_spec'].splitlines()[13]" "$RUNNER_TEMP/desk.json"
+          python3 research/graph1343-shard13-cuts.py
+          sha256sum research/graph1343-shard13-{cuts,formula}.py research/run_shapes.py
+          python3 research/run_shapes.py "$RUNNER_TEMP/solver/usr/bin/cadical" "$RUNNER_TEMP/drat-check"
