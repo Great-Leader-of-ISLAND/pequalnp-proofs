@@ -1,0 +1,59 @@
+name: Negated seed lower bound and rectangle pruning
+on:
+  push:
+    branches: [co-p2-seed-routed-1407]
+permissions:
+  contents: read
+jobs:
+  lean:
+    if: github.repository == 'Great-Leader-of-ISLAND/pequalnp-proofs' && github.event.repository.private == false
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    env:
+      LEAN_NUM_THREADS: 2
+    steps:
+      - name: Fetch this exact public commit
+        run: |
+          git init -q
+          git fetch -q --depth 1 "https://github.com/${GITHUB_REPOSITORY}.git" "$GITHUB_SHA"
+          git checkout -q --detach FETCH_HEAD
+          git init -q project
+          git -C project fetch -q --depth=1 --no-tags https://github.com/open-goat/pequalnp-proofs.git 048b39bb2c5b2c21da06d44218d16366086a68d9
+          git -C project checkout -q --detach FETCH_HEAD
+          cp research/Co*.lean project/lean/PEqualNP/
+      - name: Install pinned Lean
+        working-directory: project/lean
+        run: |
+          curl -fsSL --retry 3 -o "$RUNNER_TEMP/elan.tar.gz" https://github.com/leanprover/elan/releases/download/v4.4.0/elan-x86_64-unknown-linux-gnu.tar.gz
+          echo '0e8250aa2be86c7af929ade68db617af9edc8b9ccf6eaf5ece228250d0d032e2  '"$RUNNER_TEMP/elan.tar.gz" | sha256sum -c -
+          tar xzf "$RUNNER_TEMP/elan.tar.gz" -C "$RUNNER_TEMP" elan-init
+          "$RUNNER_TEMP/elan-init" -y --no-modify-path --default-toolchain none
+          export PATH="$HOME/.elan/bin:$PATH"
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+          elan toolchain install "$(cat lean-toolchain)"
+          lean --version
+      - name: Build the research file with the pinned Mathlib
+        working-directory: project/lean
+        run: |
+          lake exe cache get Mathlib
+          set +e
+          timeout 260 lake build +PEqualNP.CoNegativeSeed1939
+          negative=$?
+          timeout 240 lake build +PEqualNP.CoAO3143RectangleSearch
+          routed=$?
+          set -e
+          echo "Negative seed audit $negative; rectangle audit $routed"
+          if [ "$routed" -eq 0 ]; then
+            for spec in '9 13 base1 20' '11 14 base0 4'; do
+              read -r a b bank bucket <<< "$spec"
+              printf 'import PEqualNP.CoAO3143RectangleSearch\nopen CoAO3143 CoAO3143.ProtocolProof\nset_option maxHeartbeats 0\nset_option maxRecDepth 8192\nexample : guardedBucket (grid %s %s) %s %s = false := by decide +kernel\n' "$a" "$b" "$bank" "$bucket" > "$RUNNER_TEMP/Probe.lean"
+              echo "Testing rectangle pruning for $bank bucket $bucket"
+              set +e
+              timeout 55 /usr/bin/time -f 'kernel_seconds=%e' lake env lean "$RUNNER_TEMP/Probe.lean"
+              status=$?
+              set -e
+              echo "Kernel test exit $status"
+              if [ "$status" -ne 0 ] && [ "$status" -ne 124 ]; then exit "$status"; fi
+            done
+          fi
+          test "$negative" -eq 0 && test "$routed" -eq 0
