@@ -1,7 +1,7 @@
-name: Co single-star formula search
+name: Co prefix support formula search
 on:
   push:
-    branches: [co-star13-20261124-0317]
+    branches: [co-union13-20261124-0322]
 permissions:
   contents: read
 jobs:
@@ -30,5 +30,5 @@ jobs:
           curl --retry 2 --max-time 20 -fsSL https://data.pequalnp.com/data/desk/gaps.json -o "$RUNNER_TEMP/desk.json"
           python3 -c "import json,sys;d=json.load(open(sys.argv[1]));g=next(g for g in d['gaps'] if g['id']=='L-meta-1343');assert 'FIRSTJ=13)' in g['shard_spec'].splitlines()[13]" "$RUNNER_TEMP/desk.json"
           python3 research/graph1343-shard13-cuts.py
-          sha256sum research/graph1343-shard13-{cuts,formula}.py research/run_shapes.py
-          python3 research/run_shapes.py "$RUNNER_TEMP/solver/usr/bin/cadical" "$RUNNER_TEMP/drat-check"
+          sha256sum research/graph1343-shard13-{cuts,formula}.py research/support_shapes.py research/support_slp.py research/formula_domains.py research/tree-prior.json
+          python3 research/support_shapes.py "$RUNNER_TEMP/solver/usr/bin/cadical" "$RUNNER_TEMP/drat-check"
