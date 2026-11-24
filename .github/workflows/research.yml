@@ -1,0 +1,24 @@
+name: Shared guards in the three junk graph shard
+on:
+  push:
+    branches: [co-guard1342-0619]
+permissions:
+  contents: read
+jobs:
+  solve:
+    if: github.repository == 'Great-Leader-of-ISLAND/pequalnp-proofs' && github.event.repository.private == false
+    runs-on: ubuntu-24.04
+    timeout-minutes: 32
+    steps:
+      - name: Fetch the research program and certificate checker
+        run: |
+          set -euo pipefail
+          git init -q
+          git fetch -q --depth 1 "https://github.com/${GITHUB_REPOSITORY}.git" "$GITHUB_SHA"
+          git checkout -q --detach FETCH_HEAD
+          python3 -m venv "$RUNNER_TEMP/solver-env"
+          "$RUNNER_TEMP/solver-env/bin/pip" -q install "scipy==1.15.3"
+      - name: Optimize and replay shared OR and junk AND terms
+        run: |
+          cd research
+          "$RUNNER_TEMP/solver-env/bin/python" -u graph1342_guard_dictionary.py
