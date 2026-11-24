@@ -39,8 +39,8 @@ theorem bound {P L : Type*} [DecidableEq P] [DecidableEq L] [Fintype P] [Fintype
         cases hh
       · rw [if_neg hy] at hh
         have eqp := Sum.inr.inj hh
-        have hp : x.val.1 = y.val.1 := congrArg Prod.fst eqp
-        have hr : root (line x) = root (line y) := congrArg Prod.snd eqp
+        have hp : x.val.1 = y.val.1 := congrArg (fun z : ↥U × ↥U => z.1) eqp
+        have hr : root (line x) = root (line y) := congrArg (fun z : ↥U × ↥U => z.2) eqp
         have hdiff : x.val.1.val ≠ (root (line x)).val := fun he => hx (Subtype.ext he)
         have hyr : I (root (line x)).val y.val.2 := hr.symm ▸ rootAdj y
         have hyp : I x.val.1.val y.val.2 := hp.symm ▸ adj y
