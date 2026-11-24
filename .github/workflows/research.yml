@@ -1,0 +1,82 @@
+name: Kernel replay of the three signed theta orbits
+on:
+  push:
+    branches: [co-theta-kernel-pages-1105]
+permissions:
+  contents: read
+jobs:
+  proof:
+    if: github.repository == 'Great-Leader-of-ISLAND/pequalnp-proofs' && github.event.repository.private == false
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    env:
+      LEAN_NUM_THREADS: 2
+    steps:
+      - name: Fetch the mathematical sources and prepare the exact signed trace
+        run: |
+          git init -q
+          git fetch -q --depth 1 "https://github.com/${GITHUB_REPOSITORY}.git" "$GITHUB_SHA"
+          git checkout -q --detach FETCH_HEAD
+          git init -q project
+          git -C project fetch -q --depth=1 --no-tags https://github.com/brilliant-hq/pequalnp-proofs.git cc7575339c58a3f0e2e855a13128e39ba904a1fc
+          git -C project checkout -q --detach FETCH_HEAD
+          cp research/CoTheta*.lean project/lean/PEqualNP/
+      - name: Install the project's precise Lean release
+        working-directory: project/lean
+        run: |
+          curl -fsSL --retry 3 -o "$RUNNER_TEMP/elan.tar.gz" https://github.com/leanprover/elan/releases/download/v4.4.0/elan-x86_64-unknown-linux-gnu.tar.gz
+          echo '0e8250aa2be86c7af929ade68db617af9edc8b9ccf6eaf5ece228250d0d032e2  '"$RUNNER_TEMP/elan.tar.gz" | sha256sum -c -
+          tar xzf "$RUNNER_TEMP/elan.tar.gz" -C "$RUNNER_TEMP" elan-init
+          "$RUNNER_TEMP/elan-init" -y --no-modify-path --default-toolchain none
+          export PATH="$HOME/.elan/bin:$PATH"
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+          elan toolchain install "$(cat lean-toolchain)"
+          lean --version
+          lake exe cache get Mathlib
+      - name: Warm public definition files
+        working-directory: project/lean
+        run: lake build +PEqualNP.Defs
+      - name: Require a wholly allowed axiom closure and test every branch before selecting the physical source
+        working-directory: project/lean
+        run: |
+          set -o pipefail
+          verify_variant() (
+            set -e
+            kernel="$1"
+            ground="$2"
+            physical="$3"
+            lake build "+PEqualNP.$kernel" || return 1
+            printf '%s\n' "import PEqualNP.$kernel" '#print axioms CoThetaWholeBase.FixedPair.block' > "$RUNNER_TEMP/CoreAxes.lean"
+            lake env lean "$RUNNER_TEMP/CoreAxes.lean" > "$RUNNER_TEMP/CoreAxes.log" || return 1
+            python3 ../../research/theta-check-axioms.py "$RUNNER_TEMP/CoreAxes.log" CoThetaWholeBase.FixedPair.block || return 1
+            sed "1s/CoThetaWholeBase/$kernel/" "PEqualNP/$ground.lean" > "$RUNNER_TEMP/Ground.lean"
+            python3 ../../research/split-theta-packed.py "$RUNNER_TEMP/Ground.lean" PEqualNP --spans 8 || return 1
+            lake build +PEqualNP.CoThetaPackedData || return 1
+            lake env lean --run PEqualNP/CoThetaPackedDiagnostic.lean || return 1
+            { echo 'import PEqualNP.CoThetaPackedData'; echo 'namespace CoThetaWholeBase.CertifiedData'; awk '/^theorem root_/ {print "set_option maxRecDepth 30000 in"; print}' "$RUNNER_TEMP/Ground.lean"; echo 'end CoThetaWholeBase.CertifiedData'; } > "$RUNNER_TEMP/RootAudit.lean"
+            lake env lean "$RUNNER_TEMP/RootAudit.lean" || return 1
+            echo "PHYSICAL_MODULE=$physical" >> "$GITHUB_ENV"
+            echo "Selected $physical; complete generic axiom allowlist passed"
+          )
+          if verify_variant CoThetaKVectorKernel CoThetaSwiftGround CoThetaKSwiftPhysical > "$RUNNER_TEMP/vector.log" 2>&1; then
+            tail -12 "$RUNNER_TEMP/vector.log"
+          else
+            grep -E -A16 'error:|extra axioms|missing for' "$RUNNER_TEMP/vector.log" | head -160 || true
+            verify_variant CoThetaKBookKernel CoThetaBookGround CoThetaKBookPhysical
+          fi
+      - name: Check the actual one-file candidate under the twenty-minute wall limit
+        working-directory: project/lean
+        run: |
+          wc -c "PEqualNP/$PHYSICAL_MODULE.lean"
+          test "$(wc -c < "PEqualNP/$PHYSICAL_MODULE.lean")" -le 524288
+          echo "enforcing 1200 seconds, memory.max=6500000000 bytes, memory.swap.max=0"
+          sudo systemd-run --quiet --wait --pipe --collect --unit="theta-kernel-$GITHUB_RUN_ID" \
+            --uid="$(id -u)" --gid="$(id -g)" --working-directory="$PWD" \
+            --property=MemoryMax=6499999744 --property=MemorySwapMax=0 \
+            --setenv="HOME=$HOME" --setenv="PATH=$HOME/.elan/bin:/usr/local/bin:/usr/bin:/bin" \
+            --setenv=LEAN_NUM_THREADS=2 \
+            /usr/bin/python3 "$GITHUB_WORKSPACE/research/theta-cgroup-measure.py" "$HOME/.elan/bin/lake" env lean -o "$RUNNER_TEMP/$PHYSICAL_MODULE.olean" "PEqualNP/$PHYSICAL_MODULE.lean"
+          cp "$RUNNER_TEMP/$PHYSICAL_MODULE.olean" ".lake/build/lib/lean/PEqualNP/$PHYSICAL_MODULE.olean"
+          printf '%s\n' "import PEqualNP.$PHYSICAL_MODULE" '#print axioms CoThetaWholeBase.theta_first_complement_twelve' > "$RUNNER_TEMP/PhysicalAudit.lean"
+          lake env lean "$RUNNER_TEMP/PhysicalAudit.lean" | tee "$RUNNER_TEMP/final-axioms.log"
+          python3 ../../research/theta-check-axioms.py "$RUNNER_TEMP/final-axioms.log" CoThetaWholeBase.theta_first_complement_twelve
