@@ -49,19 +49,21 @@ theorem incident_neighborhood_cost [Fintype P] [Fintype L]
       (if y.val.2 = (tag y).val then Sum.inl y.val.1 else Sum.inr y.val.2) at hv
     rw [← ht] at hv
     have hy : I y.val.1 (tag x).val := ht ▸ tagInc y
-    apply Subtype.ext
-    apply Prod.ext
-    · split_ifs at hv with hx hy' hy'
-      · exact Sum.inl.inj hv
-      · cases hv
-      · cases hv
-      · have hl := Sum.inr.inj hv
-        exact unique (Ne.symm hx) (tagInc x) (prop x).1 hy (hl ▸ (prop y).1)
-    · split_ifs at hv with hx hy' hy'
-      · exact hx.trans hy'.symm
-      · cases hv
-      · cases hv
-      · exact Sum.inr.inj hv
+    by_cases hx : x.val.2 = (tag x).val
+    · rw [if_pos hx] at hv
+      by_cases hy' : y.val.2 = (tag x).val
+      · rw [if_pos hy'] at hv
+        exact Subtype.ext (Prod.ext (Sum.inl.inj hv) (hx.trans hy'.symm))
+      · rw [if_neg hy'] at hv
+        cases hv
+    · rw [if_neg hx] at hv
+      by_cases hy' : y.val.2 = (tag x).val
+      · rw [if_pos hy'] at hv
+        cases hv
+      · rw [if_neg hy'] at hv
+        have hl : x.val.2 = y.val.2 := Sum.inr.inj hv
+        have hy2 : I y.val.1 x.val.2 := hl.symm ▸ (prop y).1
+        exact Subtype.ext (Prod.ext (unique (Ne.symm hx) (tagInc x) (prop x).1 hy hy2) hl)
   simpa only [Fintype.card_prod, Fintype.card_sum, Fintype.card_coe] using
     Fintype.card_le_of_injective code inj
 
