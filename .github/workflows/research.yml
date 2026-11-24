@@ -1,0 +1,80 @@
+name: Theta cold candidate verification
+on:
+  push:
+    branches: ['co-phase2-3239-split-1323']
+permissions: {}
+jobs:
+  lean:
+    if: github.repository == 'Great-Leader-of-ISLAND/pequalnp-proofs' && github.event.repository.fork == true && github.event.repository.private == false
+    runs-on: ubuntu-24.04
+    timeout-minutes: 83
+    env:
+      LEAN_NUM_THREADS: '2'
+      BASE: 'c82165a9987e63490b4f377ec7c9f4049d8d2ce9'
+      CANDIDATE_BRANCH: 'L-meta-3239'
+      GAP: 'L-meta-3239'
+      FILE: 'lean/PEqualNP/Outside/R_meta_3239_371.lean'
+    steps:
+      - name: Check out the pinned public upstream base and snapshot its public desk statement
+        run: |
+          set -euo pipefail
+          git init -q
+          git fetch -q --no-tags --depth=1 'https://github.com/brilliant-hq/pequalnp-proofs.git' "$BASE"
+          git checkout -q --detach FETCH_HEAD
+          test "$(git rev-parse HEAD)" = "$BASE"
+          mkdir -p "$RUNNER_TEMP/in"
+          curl -fsS --retry 2 --max-time 45 --max-filesize 5000000 -o "$RUNNER_TEMP/in/gaps.json" https://data.pequalnp.com/data/desk/gaps.json
+          node .github/scripts/outside-guard.mjs gap "$RUNNER_TEMP/in/gaps.json" "$GAP" "$FILE" "$RUNNER_TEMP/in" reduce
+          echo 'ced1c34783aea02faabbda8b6bfd5ed6bce71d06abbd23e30f0ec6202a9e949d  '"$RUNNER_TEMP/in/statement.txt" | sha256sum -c -
+          echo '086c15d1b559b2a2d009b0769f0c99c6115b689366849c1f05591d4b44c7abc1  '"$RUNNER_TEMP/in/imports.json" | sha256sum -c -
+          node .github/scripts/outside-guard.mjs closure "$PWD" "$RUNNER_TEMP/in/imports.json" "$FILE" "$RUNNER_TEMP/in" reduce
+      - name: Install pinned Lean and prepare Mathlib, definitions and the checker
+        working-directory: lean
+        run: |
+          set -euo pipefail
+          curl -fsSL --retry 3 --max-time 90 -o "$RUNNER_TEMP/elan.tar.gz" https://github.com/leanprover/elan/releases/download/v4.4.0/elan-x86_64-unknown-linux-gnu.tar.gz
+          echo '0e8250aa2be86c7af929ade68db617af9edc8b9ccf6eaf5ece228250d0d032e2  '"$RUNNER_TEMP/elan.tar.gz" | sha256sum -c -
+          tar xzf "$RUNNER_TEMP/elan.tar.gz" -C "$RUNNER_TEMP" elan-init
+          "$RUNNER_TEMP/elan-init" -y --no-modify-path --default-toolchain none
+          export PATH="$HOME/.elan/bin:$PATH"
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+          elan toolchain install "$(cat lean-toolchain)"
+          lean --version
+          lake exe cache get Mathlib
+          targets=(checklemma +PEqualNP.Defs)
+          while IFS= read -r m; do if [[ -n "$m" ]]; then targets+=("+$m"); fi; done < "$RUNNER_TEMP/in/base-imports.txt"
+          lake build "${targets[@]}"
+      - name: Read and guard the sole public reduction file from the research commit
+        run: |
+          set -euo pipefail
+          git fetch -q --no-tags --depth=1 "https://github.com/${GITHUB_REPOSITORY}.git" "$GITHUB_SHA"
+          git show "FETCH_HEAD:research/CoSeedSplit.lean" > "$FILE"
+          node .github/scripts/outside-guard.mjs imports "$FILE" "$RUNNER_TEMP/in/imports.json" "$FILE" reduce
+      - name: Compile and audit against the posted statement with the upstream verifier
+        timeout-minutes: 48
+        run: |
+          set -euo pipefail
+          # No runner credential is passed to Lean. The candidate is the only added source.
+          # This fork result is advisory. The desk runs its own authoritative check.
+          mkdir -p "$RUNNER_TEMP/co-queue"
+          threads=$(python3 -c 'import os; print(",".join(map(str, sorted(os.sched_getaffinity(0))[:2])))')
+          # checklemma may need swap when all of Mathlib is imported. Use only space
+          # on this disposable VM, preserving at least 6 GiB for later build output.
+          disk=$(df -Pm / /mnt 2>/dev/null | awk 'NR>1 {print $4,$6}' | sort -nr | head -1)
+          read -r free mount <<< "$disk"
+          mb=$((free - 6144))
+          if (( mb > 12288 )); then mb=12288; fi
+          if (( mb >= 1024 )); then
+            swap="${mount%/}/co-verifier-swap"
+            sudo install -m 0600 /dev/null "$swap"
+            sudo fallocate -l "${mb}M" "$swap"
+            sudo mkswap -q "$swap" && sudo swapon "$swap"
+          fi
+          mem=$(awk '/^MemTotal:/{print $2}' /proc/meminfo)
+          old=$((mem - 1572864)); if (( old > 6815744 )); then old=6815744; fi
+          cap=$((mem - 3145728)); if (( cap < old )); then cap=$old; fi
+          deps=$(awk 'NF{n++} END{print n+0}' "$RUNNER_TEMP/in/outside-imports.txt")
+          limit=$((1200 + 240 * deps)); if (( limit > 2700 )); then limit=2700; fi
+          sudo systemd-run --quiet --scope --collect -p "MemoryMax=${cap}K" unshare --net -- setpriv --reuid="$(id -u)" --regid="$(id -g)" --clear-groups --no-new-privs \
+            env -i HOME="$HOME" PATH="$PATH" LEAN_NUM_THREADS=2 PEQUALNP_HOME="$RUNNER_TEMP/co-queue" \
+            taskset -c "$threads" timeout --kill-after=15s "$limit" /usr/bin/time -f "cold_seconds=%e rss_kib=%M" node tools/check-lean.mjs "$FILE" "$RUNNER_TEMP/in/statement.txt" reduce
