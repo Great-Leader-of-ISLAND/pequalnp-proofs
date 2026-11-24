@@ -1,0 +1,49 @@
+name: Complete free-complement theta enumeration
+on:
+  push:
+    branches: [co-theta1924-free-0854]
+permissions:
+  contents: read
+jobs:
+  compute:
+    if: github.repository == 'Great-Leader-of-ISLAND/pequalnp-proofs' && github.event.repository.private == false
+    runs-on: ubuntu-24.04
+    timeout-minutes: 22
+    steps:
+      - name: Fetch only the public mathematical programs
+        run: |
+          set -euo pipefail
+          git init -q
+          git fetch -q --depth 1 "https://github.com/${GITHUB_REPOSITORY}.git" "$GITHUB_SHA"
+          git checkout -q --detach FETCH_HEAD
+      - name: Verify small graph identities and replay the two planted circuits
+        working-directory: research
+        run: |
+          set -euo pipefail
+          python3 -B theta1924structure.py
+          python3 -B theta1924front.py --control
+          python3 -B theta1924free.py --control
+          python3 -B theta1924front.py --seconds 1
+      - name: Exhaust multiplicities with free complemented wires
+        working-directory: research
+        run: |
+          set -euo pipefail
+          for n in 8 9 10; do
+            python3 -B theta1924free.py --size "$n" --seconds 3 | tee "$RUNNER_TEMP/sorted$n.jsonl"
+          done
+          python3 -c "import collections,glob,json,os; print([(f,collections.Counter(json.loads(s)['status'] for s in open(f))) for f in sorted(glob.glob(os.environ['RUNNER_TEMP']+'/sorted*.jsonl'))])"
+      - name: Cross-check the unconstrained chronological order
+        working-directory: research
+        run: |
+          set -euo pipefail
+          for n in 8 9 10; do
+            python3 -B theta1924free.py --size "$n" --unsorted --seconds 2 | tee "$RUNNER_TEMP/unsorted$n.jsonl"
+          done
+          python3 -c "import collections,glob,json,os; print([(f,collections.Counter(json.loads(s)['status'] for s in open(f))) for f in sorted(glob.glob(os.environ['RUNNER_TEMP']+'/unsorted*.jsonl'))])"
+
+      - name: Check directly on unordered live signal values
+        working-directory: research
+        run: |
+          set -euo pipefail
+          python3 -B theta1924live.py --size 9 --seconds 30
+          python3 -B theta1924live.py --size 10 --seconds 180
