@@ -1,0 +1,90 @@
+name: Verify pinned Lean proofs for the graph restrictions
+on:
+  push:
+    branches: [co-p2-seeded-theta-2340]
+permissions:
+  contents: read
+jobs:
+  lean:
+    if: github.repository == 'Great-Leader-of-ISLAND/pequalnp-proofs' && github.event.repository.private == false
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    env:
+      LEAN_NUM_THREADS: 2
+    steps:
+      - name: Fetch this exact public commit
+        run: |
+          git init -q
+          git fetch -q --depth 1 "https://github.com/${GITHUB_REPOSITORY}.git" "$GITHUB_SHA"
+          git checkout -q --detach FETCH_HEAD
+          git init -q project
+          git -C project fetch -q --depth=1 --no-tags https://github.com/open-goat/pequalnp-proofs.git 62be4f97ea6beae607418c79cf5fb9de79f2a68d
+          git -C project checkout -q --detach FETCH_HEAD
+          cp research/Co*.lean project/lean/PEqualNP/
+      - name: Install pinned Lean
+        working-directory: project/lean
+        run: |
+          curl -fsSL --retry 3 -o "$RUNNER_TEMP/elan.tar.gz" https://github.com/leanprover/elan/releases/download/v4.4.0/elan-x86_64-unknown-linux-gnu.tar.gz
+          echo '0e8250aa2be86c7af929ade68db617af9edc8b9ccf6eaf5ece228250d0d032e2  '"$RUNNER_TEMP/elan.tar.gz" | sha256sum -c -
+          tar xzf "$RUNNER_TEMP/elan.tar.gz" -C "$RUNNER_TEMP" elan-init
+          "$RUNNER_TEMP/elan-init" -y --no-modify-path --default-toolchain none
+          export PATH="$HOME/.elan/bin:$PATH"
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+          elan toolchain install "$(cat lean-toolchain)"
+          lean --version
+      - name: Restore the pinned Mathlib
+        working-directory: project/lean
+        timeout-minutes: 7
+        run: lake exe cache get Mathlib
+      - name: Verify Co1677ThreeAnd
+        if: always()
+        working-directory: project/lean
+        timeout-minutes: 6
+        run: sudo systemd-run --scope --quiet --collect -p MemoryMax=9G setpriv --reuid="$(id -u)" --regid="$(id -g)" --clear-groups env HOME="$HOME" PATH="$PATH" LEAN_NUM_THREADS=2 timeout --kill-after=8s 260 /usr/bin/time -f 'module_seconds=%e rss_kib=%M' lake build "+PEqualNP.Co1677ThreeAnd"
+      - name: Verify Co1677Or26
+        if: always()
+        working-directory: project/lean
+        timeout-minutes: 6
+        run: sudo systemd-run --scope --quiet --collect -p MemoryMax=9G setpriv --reuid="$(id -u)" --regid="$(id -g)" --clear-groups env HOME="$HOME" PATH="$PATH" LEAN_NUM_THREADS=2 timeout --kill-after=8s 260 /usr/bin/time -f 'module_seconds=%e rss_kib=%M' lake build "+PEqualNP.Co1677Or26"
+      - name: Verify CoNegativePorts5282
+        if: always()
+        working-directory: project/lean
+        timeout-minutes: 6
+        run: sudo systemd-run --scope --quiet --collect -p MemoryMax=9G setpriv --reuid="$(id -u)" --regid="$(id -g)" --clear-groups env HOME="$HOME" PATH="$PATH" LEAN_NUM_THREADS=2 timeout --kill-after=8s 260 /usr/bin/time -f 'module_seconds=%e rss_kib=%M' lake build "+PEqualNP.CoNegativePorts5282"
+      - name: Verify CoPortReplace5282
+        if: always()
+        working-directory: project/lean
+        timeout-minutes: 6
+        run: sudo systemd-run --scope --quiet --collect -p MemoryMax=9G setpriv --reuid="$(id -u)" --regid="$(id -g)" --clear-groups env HOME="$HOME" PATH="$PATH" LEAN_NUM_THREADS=2 timeout --kill-after=8s 260 /usr/bin/time -f 'module_seconds=%e rss_kib=%M' lake build "+PEqualNP.CoPortReplace5282"
+      - name: Verify CoJunctionFastComplete4482
+        if: always()
+        working-directory: project/lean
+        timeout-minutes: 6
+        run: sudo systemd-run --scope --quiet --collect -p MemoryMax=9G setpriv --reuid="$(id -u)" --regid="$(id -g)" --clear-groups env HOME="$HOME" PATH="$PATH" LEAN_NUM_THREADS=2 timeout --kill-after=8s 260 /usr/bin/time -f 'module_seconds=%e rss_kib=%M' lake build "+PEqualNP.CoJunctionFastComplete4482"
+      - name: Verify CoProfileBase4482
+        if: always()
+        working-directory: project/lean
+        timeout-minutes: 6
+        run: sudo systemd-run --scope --quiet --collect -p MemoryMax=9G setpriv --reuid="$(id -u)" --regid="$(id -g)" --clear-groups env HOME="$HOME" PATH="$PATH" LEAN_NUM_THREADS=2 timeout --kill-after=8s 260 /usr/bin/time -f 'module_seconds=%e rss_kib=%M' lake build "+PEqualNP.CoProfileBase4482"
+      - name: Verify CoProfileFast4482
+        if: always()
+        working-directory: project/lean
+        timeout-minutes: 6
+        run: sudo systemd-run --scope --quiet --collect -p MemoryMax=9G setpriv --reuid="$(id -u)" --regid="$(id -g)" --clear-groups env HOME="$HOME" PATH="$PATH" LEAN_NUM_THREADS=2 timeout --kill-after=8s 260 /usr/bin/time -f 'module_seconds=%e rss_kib=%M' lake build "+PEqualNP.CoProfileFast4482"
+      - name: Verify CoThetaOr1677Signed
+        if: always()
+        working-directory: project/lean
+        timeout-minutes: 9
+        run: sudo systemd-run --scope --quiet --collect -p MemoryMax=9G setpriv --reuid="$(id -u)" --regid="$(id -g)" --clear-groups env HOME="$HOME" PATH="$PATH" LEAN_NUM_THREADS=2 timeout --kill-after=8s 470 /usr/bin/time -f 'module_seconds=%e rss_kib=%M' lake build "+PEqualNP.CoThetaOr1677Signed"
+      - name: Test the normalized boundary enumerator and compare the five-boundary result
+        if: always()
+        working-directory: research
+        timeout-minutes: 2
+        run: |
+          set -euo pipefail
+          c++ -O2 -std=c++17 1677-boundary-banks.cpp -o "$RUNNER_TEMP/banks"
+          "$RUNNER_TEMP/banks" --control
+          result=$("$RUNNER_TEMP/banks" 5 0 36 1)
+          echo "$result"
+          grep -F "EXHAUSTED normalized k=5 roots=[0,36)" <<< "$result"
+          "$RUNNER_TEMP/banks" 4 0 36 8
