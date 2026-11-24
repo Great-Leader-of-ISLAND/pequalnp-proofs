@@ -1,0 +1,20 @@
+name: Theta finite row-pair cut
+on:
+  push:
+    branches: [co-theta1924-cutrows-0941]
+permissions:
+  contents: read
+jobs:
+  solve:
+    if: github.repository == 'Great-Leader-of-ISLAND/pequalnp-proofs' && github.event.repository.private == false
+    runs-on: ubuntu-24.04
+    timeout-minutes: 4
+    steps:
+      - name: Fetch only the public mathematical sources
+        run: |
+          set -euo pipefail
+          git init -q
+          git fetch -q --depth 1 "https://github.com/${GITHUB_REPOSITORY}.git" "$GITHUB_SHA"
+          git checkout -q --detach FETCH_HEAD
+      - name: Compute row cut
+        run: timeout 150s python3 -B research/theta1924cutrows.py
