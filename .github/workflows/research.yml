@@ -1,0 +1,35 @@
+name: Test theta circuit enumeration and physical witness replay
+on:
+  push:
+    branches: [co-p2-theta-enumeration-1906]
+permissions:
+  contents: read
+jobs:
+  solve:
+    if: github.repository == 'Great-Leader-of-ISLAND/pequalnp-proofs' && github.event.repository.private == false
+    runs-on: ubuntu-24.04
+    timeout-minutes: 6
+    steps:
+      - name: Fetch research commit
+        run: |
+          git init -q
+          git fetch -q --depth 1 "https://github.com/${GITHUB_REPOSITORY}.git" "$GITHUB_SHA"
+          git checkout -q --detach FETCH_HEAD
+      - name: Build and test theta enumerators
+        run: |
+          c++ -O2 -std=c++17 research/4358-lift.cpp -o lift
+          ./lift --self-test
+          c++ -O2 -std=c++17 research/4358-complete.cpp -o direct
+          ./direct --self-test
+      - name: Test six-cycle lifting on 128 truth rows
+        timeout-minutes: 2
+        run: |
+          sudo systemd-run --scope --quiet --collect -p MemoryMax=3G setpriv --reuid="$(id -u)" --regid="$(id -g)" --clear-groups timeout -k 1s 105s ./lift 95 435824 witness-lift.json
+          if test -f witness-lift.json; then python3 research/4358-replay.py witness-lift.json; cat witness-lift.json; fi
+      - name: Test independent full DAG enumeration
+        timeout-minutes: 3
+        run: |
+          rc=0
+          sudo systemd-run --scope --quiet --collect -p MemoryMax=3G setpriv --reuid="$(id -u)" --regid="$(id -g)" --clear-groups timeout -k 2s 118s ./direct 108 0 42 witness-direct.json || rc=$?
+          test "$rc" = 0 || test "$rc" = 3
+          if test -f witness-direct.json; then cat witness-direct.json; fi
