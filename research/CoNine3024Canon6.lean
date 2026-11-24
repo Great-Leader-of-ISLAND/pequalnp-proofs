@@ -1,0 +1,102 @@
+import PEqualNP.CoNine3024CanonCodec
+import PEqualNP.CoNine3024Data
+namespace CoNine3024.Canon.G6Y
+set_option maxRecDepth 32768
+set_option maxHeartbeats 0
+def V : Array Atom := #[
+⟨0xfaaafaaafaaafaaa0000000000000000faaafaaafaaafaaa0000000000000000faaafaaafaaafaaa0000000000000000faaafaaafaaafaaa,0xfffc000fffffff0003fff,0x510144051014405101440510144051014405101440510144051014405101440,0x0⟩,
+⟨0xfafafafaf0f0f0f00000000000000000fafafafaf0f0f0f00000000000000000fafafafaf0f0f0f00000000000000000fafafafaf0f0f0f0,0xfffc00000000000000000fffc0000003ffffffc000,0x3010c043010c043010c043010c043010c043010c043010c043010c043010c04,0x0⟩,
+⟨0xfafafafafa00fa000000000000000000fafafafafa00fa000000000000000000fafafafafa00fa000000000000000000fafafafafa00fa00,0xfffc0000003fff0000000,0x11004401100440110044011004401100440110044011004401100440110044,0x0⟩,
+⟨0xfafafafafafafafa0000000000000000fafafafafafafafa0000000000000000fafafafafafafafa0000000000000000fafafafafafafafa,0xfffc00000000000000000fffc000ffffffffffffff,0x7111c447111c447111c447111c447111c447111c447111c447111c447111c44,0x0⟩,
+⟨0xffaaffaaffaaffaa0000000000000000ffaaffaaffaaffaa0000000000000000ffaaffaaffaaffaa0000000000000000ffaaffaaffaaffaa,0xfffc0000000000000000000000000000000ffffffffffffff0003fff,0x53054c153054c153054c153054c153054c153054c153054c153054c153054c1,0x0⟩,
+⟨0xfffafffafffafffa0000000000000000fffafffafffafffa0000000000000000fffafffafffafffa0000000000000000fffafffafffafffa,0xfffc0000000000fffc00000000000000000fffffffffffffffffffff,0x7315cc57315cc57315cc57315cc57315cc57315cc57315cc57315cc57315cc5,0x0⟩,
+⟨0xfffffffff0f0f0f00000000000000000fffffffff0f0f0f00000000000000000fffffffff0f0f0f00000000000000000fffffffff0f0f0f0,0x3fff00000000003ffffffc00000000000000000fffc0000003ffffffc000,0x301cc07301cc07301cc07301cc07301cc07301cc07301cc07301cc07301cc07,0x0⟩,
+⟨0xfffffffffafafafa0000000000000000fffffffffafafafa0000000000000000fffffffffafafafa0000000000000000fffffffffafafafa,0x3fff00000000003ffffffc00000000000000000fffc000ffffffffffffff,0x711dc47711dc47711dc47711dc47711dc47711dc47711dc47711dc47711dc47,0x0⟩,
+⟨0xffffffffff00ff000000000000000000ffffffffff00ff000000000000000000ffffffffff00ff000000000000000000ffffffffff00ff00,0x3ffffffc0000003fff000000000000000000000fffffff0003fff0000000,0x31c0c7031c0c7031c0c7031c0c7031c0c7031c0c7031c0c7031c0c7031c0c7,0x0⟩,
+⟨0xfffffffffffafffa0000000000000000fffffffffffafffa0000000000000000fffffffffffafffa0000000000000000fffffffffffafffa,0x3ffffffc0000003ffffffc00000000000000000fffffffffffffffffffff,0x731dcc7731dcc7731dcc7731dcc7731dcc7731dcc7731dcc7731dcc7731dcc7,0x0⟩,
+⟨0xffffffffffffffff0000000000000000ffffffffffffffff0000000000000000ffffffffffffffff0000000000000000ffffffffffffffff,0x3ffffffc0000003ffffffc00000000000000000fffffffffffffffffffff,0xf31fcc7f31fcc7f31fcc7f31fcc7f31fcc7f31fcc7f31fcc7f31fcc7f31fcc7,0x10800100020⟩,
+⟨0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa,0x3fff0003fff0000000fffc000fffc0000003fff,0x552154855215485521548552154855215485521548552154855215485521548,0x1⟩,
+⟨0xcccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc,0x3fff00000000000000fffffff,0x820e083820e083820e083820e083820e083820e083820e083820e083820e083,0x20⟩,
+⟨0xf0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0,0xfffc000fffc0000000000fffc00000000000003ffffffc000,0x30b0c2c30b0c2c30b0c2c30b0c2c30b0c2c30b0c2c30b0c2c30b0c2c30b0c2c,0x400⟩,
+⟨0xfa00fa00fa00fa00fafafafafafafafafa00fa00fa00fa00fafafafafafafafafa00fa00fa00fa00fafafafafafafafafa00fa00fa00fa00fafafafafafafafa,0xfffc0000000000fffc000fffc000ffffffffffffff,0x7511d447511d447511d447511d447511d447511d447511d447511d447511d44,0x0⟩,
+⟨0xfaaafaaafaaafaaafaaafaaafaaafaaafaaafaaafaaafaaafaaafaaafaaafaaafaaafaaafaaafaaafaaafaaafaaafaaafaaafaaafaaafaaafaaafaaafaaafaaa,0x3fff0003ffffffc000fffc000fffffff0003fff,0x552154855215485521548552154855215485521548552154855215485521548,0x0⟩,
+⟨0xfafafafa00000000fafafafafafafafafafafafa00000000fafafafafafafafafafafafa00000000fafafafafafafafafafafafa00000000fafafafafafafafa,0xfffffff00000000000000fffc000ffffffffffffff,0x7191c647191c647191c647191c647191c647191c647191c647191c647191c64,0x0⟩,
+⟨0xfafafafaf0f0f0f0fafafafaf0f0f0f0fafafafaf0f0f0f0fafafafaf0f0f0f0fafafafaf0f0f0f0fafafafaf0f0f0f0fafafafaf0f0f0f0fafafafaf0f0f0f0,0xfffc000fffffff0000000fffc000fffc0000003ffffffc000,0x30b0c2c30b0c2c30b0c2c30b0c2c30b0c2c30b0c2c30b0c2c30b0c2c30b0c2c,0x0⟩,
+⟨0xfafafafafa00fa00fafafafafa00fa00fafafafafa00fa00fafafafafa00fa00fafafafafa00fa00fafafafafa00fa00fafafafafa00fa00fafafafafa00fa00,0x3fff0000000fffc000fffc0000003fff0000000,0x59016405901640590164059016405901640590164059016405901640590164,0x0⟩,
+⟨0xfafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafafa,0xfffc000fffffff0003ffffffc000fffc000ffffffffffffff,0x75b1d6c75b1d6c75b1d6c75b1d6c75b1d6c75b1d6c75b1d6c75b1d6c75b1d6c,0x0⟩,
+⟨0xfafafafafafafafafffafffafffafffafafafafafafafafafffafffafffafffafafafafafafafafafffafffafffafffafafafafafafafafafffafffafffafffa,0xfffc000fffc000fffffff0003ffffffc000fffffffffffffffffffff,0x77b5ded77b5ded77b5ded77b5ded77b5ded77b5ded77b5ded77b5ded77b5ded,0x0⟩,
+⟨0xfafafafafafafafafffffffffafafafafafafafafafafafafffffffffafafafafafafafafafafafafffffffffafafafafafafafafafafafafffffffffafafafa,0x3fff0000000ffffffffffffff0003ffffffc000fffc000ffffffffffffff,0x75bdd6f75bdd6f75bdd6f75bdd6f75bdd6f75bdd6f75bdd6f75bdd6f75bdd6f,0x0⟩,
+⟨0xfafafafafafafafafffffffffffafffafafafafafafafafafffffffffffafffafafafafafafafafafffffffffffafffafafafafafafafafafffffffffffafffa,0x3ffffffc000ffffffffffffff0003ffffffc000fffffffffffffffffffff,0x77bddef77bddef77bddef77bddef77bddef77bddef77bddef77bddef77bddef,0x0⟩,
+⟨0xff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00,0xfffc00000000000000000fffc000fffc0000003fff0003fff0000000,0x7441d107441d107441d107441d107441d107441d107441d107441d107441d1,0x8000⟩,
+⟨0xff00ff00ff00ff00fffafffafffafffaff00ff00ff00ff00fffafffafffafffaff00ff00ff00ff00fffafffafffafffaff00ff00ff00ff00fffafffafffafffa,0xfffc0000000000fffc000fffc000fffc000fffffffffffffffffffff,0x7755dd57755dd57755dd57755dd57755dd57755dd57755dd57755dd57755dd5,0x0⟩,
+⟨0xff00ff00ff00ff00fffffffffffafffaff00ff00ff00ff00fffffffffffafffaff00ff00ff00ff00fffffffffffafffaff00ff00ff00ff00fffffffffffafffa,0x3ffffffc0000003ffffffc000fffc000fffc000fffffffffffffffffffff,0x775ddd7775ddd7775ddd7775ddd7775ddd7775ddd7775ddd7775ddd7775ddd7,0x0⟩,
+⟨0xffaaffaaffaaffaaffaaffaaffaaffaaffaaffaaffaaffaaffaaffaaffaaffaaffaaffaaffaaffaaffaaffaaffaaffaaffaaffaaffaaffaaffaaffaaffaaffaa,0xfffc00000000000003fffffffffffffc000ffffffffffffff0003fff,0x57655d957655d957655d957655d957655d957655d957655d957655d957655d9,0x0⟩,
+⟨0xfffafffafffafffafffafffafffafffafffafffafffafffafffafffafffafffafffafffafffafffafffafffafffafffafffafffafffafffafffafffafffafffa,0xfffc000fffc000fffffffffffffffffc000fffffffffffffffffffff,0x77f5dfd77f5dfd77f5dfd77f5dfd77f5dfd77f5dfd77f5dfd77f5dfd77f5dfd,0x0⟩,
+⟨0xffff0000ffff0000ffff0000ffff0000ffff0000ffff0000ffff0000ffff0000ffff0000ffff0000ffff0000ffff0000ffff0000ffff0000ffff0000ffff0000,0xfffffff00000000003ffffffc0000000000,0xa89aa26a89aa26a89aa26a89aa26a89aa26a89aa26a89aa26a89aa26a89aa26,0x2108001⟩,
+⟨0xffffffff00000000ffffffff00000000ffffffff00000000ffffffff00000000ffffffff00000000ffffffff00000000ffffffff00000000ffffffff00000000,0x3fff0003fff0003fff0003fff00000000000000fffc00000000000000000,0xdc03700dc03700dc03700dc03700dc03700dc03700dc03700dc03700dc037,0x40000000⟩,
+⟨0xffffffff00000000fffffffffafafafaffffffff00000000fffffffffafafafaffffffff00000000fffffffffafafafaffffffff00000000fffffffffafafafa,0x3fff0003fff0003ffffffffff00000000000000fffc000ffffffffffffff,0x71ddc7771ddc7771ddc7771ddc7771ddc7771ddc7771ddc7771ddc7771ddc77,0x0⟩,
+⟨0xffffffff00000000fffffffffffafffaffffffff00000000fffffffffffafffaffffffff00000000fffffffffffafffaffffffff00000000fffffffffffafffa,0x3ffffffffff0003ffffffffff00000000000000fffffffffffffffffffff,0x73ddcf773ddcf773ddcf773ddcf773ddcf773ddcf773ddcf773ddcf773ddcf7,0x0⟩,
+⟨0xfffffffff0f0f0f0fffffffff0f0f0f0fffffffff0f0f0f0fffffffff0f0f0f0fffffffff0f0f0f0fffffffff0f0f0f0fffffffff0f0f0f0fffffffff0f0f0f0,0x3fff0003fffffffffffffffff0000000fffc000fffc0000003ffffffc000,0x30fcc3f30fcc3f30fcc3f30fcc3f30fcc3f30fcc3f30fcc3f30fcc3f30fcc3f,0x0⟩,
+⟨0xfffffffffafafafafffffffffafafafafffffffffafafafafffffffffafafafafffffffffafafafafffffffffafafafafffffffffafafafafffffffffafafafa,0x3fff0003fffffffffffffffff0003ffffffc000fffc000ffffffffffffff,0x75fdd7f75fdd7f75fdd7f75fdd7f75fdd7f75fdd7f75fdd7f75fdd7f75fdd7f,0x0⟩,
+⟨0xffffffffff00ff00ffffffffff00ff00ffffffffff00ff00ffffffffff00ff00ffffffffff00ff00ffffffffff00ff00ffffffffff00ff00ffffffffff00ff00,0x3ffffffffff0003fff0003ffffffc000fffc000fffffff0003fff0000000,0x7dc1f707dc1f707dc1f707dc1f707dc1f707dc1f707dc1f707dc1f707dc1f7,0x0⟩,
+⟨0xffffffffff00ff00fffffffffffafffaffffffffff00ff00fffffffffffafffaffffffffff00ff00fffffffffffafffaffffffffff00ff00fffffffffffafffa,0x3ffffffffff0003fffffffffffffc000fffc000fffffffffffffffffffff,0x77dddf777dddf777dddf777dddf777dddf777dddf777dddf777dddf777dddf7,0x0⟩,
+⟨0xfffffffffffafffafffffffffffafffafffffffffffafffafffffffffffafffafffffffffffafffafffffffffffafffafffffffffffafffafffffffffffafffa,0x3ffffffffffffffffffffffffffffffffffc000fffffffffffffffffffff,0x77fddff77fddff77fddff77fddff77fddff77fddff77fddff77fddff77fddff,0x0⟩,
+⟨0xffffffffffffffff0000000000000000ffffffffffffffff0000000000000000ffffffffffffffff0000000000000000ffffffffffffffff0000000000000000,0xfffc0000003ffffffc0000003fffffffffffffffff000000000000000000000,0xce03380ce03380ce03380ce03380ce03380ce03380ce03380ce03380ce0338,0x10800100020⟩,
+⟨0xfffffffffffffffffafafafafa00fa00fffffffffffffffffafafafafa00fa00fffffffffffffffffafafafafa00fa00fffffffffffffffffafafafafa00fa00,0xfffc0000003ffffffc0000003ffffffffffffffffffffc0000003fff0000000,0xdf037c0df037c0df037c0df037c0df037c0df037c0df037c0df037c0df037c,0x0⟩,
+⟨0xffffffffffffffffffffffffffffffff00000000000000000000000000000000ffffffffffffffffffffffffffffffff00000000000000000000000000000000,0x3fffffffffffffc00000000000000000000000000000000000000,0xcf033c0cf033c0cf033c0cf033c0cf033c0cf033c0cf033c0cf033c0cf033c0,0x842000400⟩,
+⟨0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff0000000000000000000000000000000000000000000000000000000000000000,0xffffffffffc0000000000000000000000000000000000000000000000000000,0xf003c00f003c00f003c00f003c00f003c00f003c00f003c00f003c00f003c00,0x10000000000⟩]
+def ask : Oracle := oracle 0 #[0x0,0x4,0x0,0x3,0x12,0x5,0xd,0x3,0x0,0x0,0x8,0x0,0x1,0x0,0x0,0x0,0x1,0x0,0x2,0x0,0x2,0x4,0x0,0x0,0x2,0xa,0x9,0x8,0x3,0x0,0xa,0x0,0x1,0x5,0x0,0x0,0x0,0x5,0x0,0x5,0xd,0x2,0x2,0x6,0x1,0x1,0x2,0x1,0x0,0x0,0x2,0x24,0x0,0x0,0x3,0x2,0x0,0x0,0x6,0x1,0x0,0x0,0x0,0x3,0x0,0x0,0x1,0x2,0x0,0x2] #[0x8120180122,0x8120180711,0x412406c3563,0x8120180111,0x8120180d22,0x758d4a44b71,0x50018361922,0x8120180d22,0x758d4a44b71,0x8120180011,0x758d4a44872,0x758d4a04872,0x8120180d22,0x7c060c25d82,0x758d4a44872,0x758d4a04862,0x481600e0c22,0x0,0x758d4a44b71,0x481600e0c32,0x7c060c25d72,0x8120180711,0x7c060c25d82,0x758d4a04872,0x500181e1911,0x8120180711,0x8120180d11,0x0,0x0,0x758d4a04861,0x412406c3561,0x48160000c32,0x758d4a44b71,0x0,0x0,0x50018361922,0x7c060c25d82,0x481600e0c22,0x0,0x8120180d11,0x0,0x0,0x758d4a04862,0x481600e0c22,0x412406c3552,0x758d4a04872,0x8120180022,0x7c060c25d92,0x8120180711,0x8120180111,0x8120180722,0x8120180711,0x7c060c25d82,0x758d4a44b71,0x758d4a44871,0x8120180711,0x0,0x481600e0c21,0x0,0x8120180d22,0x0,0x758d4a04862,0x481600e0c32,0x758d4984882,0x8120180722,0x7c060c25d72,0x50018361922,0x2b238180d22,0x758d4a44b61,0x758d4a44872,0x8120180122,0x481600e0c32,0x758d4a04872,0x758d4a04872,0x0,0x8120180d22,0x331601e1933,0x8120180011,0x8120180d11,0x500181e1922,0x481600e0c22,0x8120180d22,0x758d4a04861,0x758d4a44872,0x669e4a04b61,0x50018361922,0x7c060c25d82,0x7c060c25d93,0x412406c3552,0x50018361911,0x412406c3563,0x8120180d22,0x0,0x7c060c25d93,0x8120180022,0x2b238180d22,0x758d4a04862,0x8120180d33,0x48160000c32,0x7c060c25d82,0x758d4a44b61,0x8120180722,0x0,0x7c060c25d82,0x8120180711,0x50018361922,0x0,0x758d4a04862,0x0,0x50018361922,0x758d4a44882,0x481600e0c21,0x412406c3541,0x7c060c25d82,0x50018361911,0x8120180722,0x8120180d22,0x7c060c25d82,0x7c060c25d72,0x8120180111,0x758d4a44b61,0x48160000c21,0x758d4a44872,0x8120180722,0x8120180722,0x8120180722,0x8120180111,0x7c060c25d81,0x758d4a04b61,0x758d4a04872,0x758d4a04862,0x758d4a44882,0x0,0x8120180711,0x8120180122,0x0,0x8120180111,0x8120180022,0x50018361911,0x758d4a44b61,0x0,0x0,0x0,0x8120180d22,0x758d4a04872,0x758d4984872,0x481600e0c32,0x758d4a44882,0x481600e0c32,0x481600e0c21,0x8120180011,0x8120180722,0x412406c3563,0x8120180711,0x7c060c25d71,0x481600e0c22,0x0,0x758d4a44871,0x8120180711,0x758d4a44872,0x0,0x758d4a04b51,0x8120180122]
+def guard := guided 6 ask
+def t9 : Table := table V 64 0 #[0x0] #[0x5344ef3ac1c69821040208441]
+def check9 (i : Nat) := node guard (geom 6) 8 blank (t9.state i)
+theorem ok9_0 : batch check9 0 1=true := by decide +kernel
+theorem ok9 : batch check9 0 1=true := ok9_0
+theorem proven9 : valid guard (geom 6) 9 t9 := layer (blank_valid guard (geom 6) 8) ok9
+def t10 : Table := table V 64 0 #[0x1,0x0,0x1,0x4,0x1,0x3,0x0,0x0,0x2,0x0,0x5] #[0x14d133ceb0b1c69810840100421,0x14d133ceb0a9c69810800108421,0x14d133ceb8c1c69810800108421,0x14d133ceb0b9c69810840108421,0x14d133ceb071a61410840108421,0x14d1340f3ac1c69810840108421,0x14d133ceb071a60610840108421,0x0,0x14d133ceb4c1c69810840108421,0x14d1348f3ac1c69810840108421,0x14d133ceb091a60410840100821,0x0,0x14d133ceb089c69810840100421,0x0,0x14d133ceb081c68810800108422,0x14d133ceb081c68210800108422,0x14d133ceb071a60810800108421,0x14d133ceb071a60810840100421,0x0,0x14d133ceb079c69810800108421,0x0,0x14d1344f3ac1c69810840100421,0x14d13470bada869600080010802,0x14d133ceb091a60810840100821,0x14d133ceb091a60e10840100821,0x14d133ceb081c68a10800108422,0x0,0x14d13bceb071a61610840108421,0x0]
+def check10 (i : Nat) := node guard (geom 6) 9 t9 (t10.state i)
+theorem ok10_0 : batch check10 0 3=true := by decide +kernel
+theorem ok10_3 : batch check10 3 3=true := by decide +kernel
+theorem ok10_6 : batch check10 6 3=true := by decide +kernel
+theorem ok10_9 : batch check10 9 3=true := by decide +kernel
+theorem ok10_12 : batch check10 12 3=true := by decide +kernel
+theorem ok10_15 : batch check10 15 3=true := by decide +kernel
+theorem ok10_18 : batch check10 18 3=true := by decide +kernel
+theorem ok10_21 : batch check10 21 3=true := by decide +kernel
+theorem ok10_24 : batch check10 24 3=true := by decide +kernel
+theorem ok10_27 : batch check10 27 2=true := by decide +kernel
+theorem ok10 : batch check10 0 29=true := (@merge check10 0 15 14 (@merge check10 0 9 6 (@merge check10 0 6 3 (@merge check10 0 3 3 ok10_0 ok10_3) ok10_6) (@merge check10 9 3 3 ok10_9 ok10_12)) (@merge check10 15 9 5 (@merge check10 15 6 3 (@merge check10 15 3 3 ok10_15 ok10_18) ok10_21) (@merge check10 24 3 2 ok10_24 ok10_27)))
+theorem proven10 : valid guard (geom 6) 10 t10 := layer proven9 ok10
+def t11 : Table := table V 64 0 #[0x3,0x9,0x1,0x6,0xa,0x0,0x0,0x1,0x0,0x0,0x0,0x1a,0x3,0x2,0x1,0x0] #[0x5344d0bceb091a61600040000801,0x0,0x5344d0bceb0a1a60810840100821,0x5344cfbceb0a1c69810840100421,0x5344d2bceb071a61600040008401,0x14d133ceb091a61600040000801,0x14d133ef3ac1c69810840100421,0x14d133ceb071a61010840100421,0x5344cf3ac2871a61210840108421,0x14d133ceb071a60c10800108421,0x5344cf3ac2671a61600040008401,0x5344d1bceb6a1c69600040010402,0x5344d1bceb071a60810840108421,0x5344cf3adb081c69600000008402,0x5344d13ceb071a60810840100421,0x5344cfbceb071a60810840100421,0x5344cf3ac2881c69600000008402,0x5344cf3ae3071a60810800108421,0x0,0x5344d0bceb6c2869600040008802,0x5344cf3ac2871a60c10800108421,0x5344cf3adb0a1c68810800108422,0x0,0x0,0x5344cf3adb0a1c68a10800108422,0x5344cf3acb071a60810800108421,0x5344d13ceb071a61010840100421,0x5344d0bceb0a1a60e10840100821,0x14d133ceb2c1c69810800108421,0x0,0x5344cf3acb0a1c69810800108421,0x5344cf3ac2891a61600040000801,0x5344d1c2eb0a1a61600080008801,0x5344cf3ae3071a60c10800108421,0x14d133ceb081c69600000008402,0x0,0x5344cf3ac2871a61010840100421]
+def check11 (i : Nat) := node guard (geom 6) 10 t10 (t11.state i)
+theorem ok11_0 : batch check11 0 3=true := by decide +kernel
+theorem ok11_3 : batch check11 3 3=true := by decide +kernel
+theorem ok11_6 : batch check11 6 3=true := by decide +kernel
+theorem ok11_9 : batch check11 9 3=true := by decide +kernel
+theorem ok11_12 : batch check11 12 3=true := by decide +kernel
+theorem ok11_15 : batch check11 15 3=true := by decide +kernel
+theorem ok11_18 : batch check11 18 3=true := by decide +kernel
+theorem ok11_21 : batch check11 21 3=true := by decide +kernel
+theorem ok11_24 : batch check11 24 3=true := by decide +kernel
+theorem ok11_27 : batch check11 27 3=true := by decide +kernel
+theorem ok11_30 : batch check11 30 3=true := by decide +kernel
+theorem ok11_33 : batch check11 33 3=true := by decide +kernel
+theorem ok11_36 : batch check11 36 1=true := by decide +kernel
+theorem ok11 : batch check11 0 37=true := (@merge check11 0 18 19 (@merge check11 0 9 9 (@merge check11 0 6 3 (@merge check11 0 3 3 ok11_0 ok11_3) ok11_6) (@merge check11 9 6 3 (@merge check11 9 3 3 ok11_9 ok11_12) ok11_15)) (@merge check11 18 9 10 (@merge check11 18 6 3 (@merge check11 18 3 3 ok11_18 ok11_21) ok11_24) (@merge check11 27 6 4 (@merge check11 27 3 3 ok11_27 ok11_30) (@merge check11 33 3 1 ok11_33 ok11_36))))
+theorem proven11 : valid guard (geom 6) 11 t11 := layer proven10 ok11
+def t12 : Table := table V 64 0 #[0x2,0x0,0x3,0x0,0x0] #[0x0,0x14d133ceb071a60810800100421,0x5344cf3adb0a1c69600000008402,0x5344cf3ac2871a60810800100421,0x5344d13ceb071a61600040000401,0x14d133ceb8c2871a61600000008401,0x0,0x14d1344f3ac2871a61600040000401,0x5344cf3ae3071a61600000008401,0x0,0x5344d0bceb0a1a61600040000801,0x14d1346f3ac2871a61600040008401,0x0]
+def check12 (i : Nat) := node guard (geom 6) 11 t11 (t12.state i)
+theorem ok12_0 : batch check12 0 3=true := by decide +kernel
+theorem ok12_3 : batch check12 3 3=true := by decide +kernel
+theorem ok12_6 : batch check12 6 3=true := by decide +kernel
+theorem ok12_9 : batch check12 9 3=true := by decide +kernel
+theorem ok12_12 : batch check12 12 1=true := by decide +kernel
+theorem ok12 : batch check12 0 13=true := (@merge check12 0 6 7 (@merge check12 0 3 3 ok12_0 ok12_3) (@merge check12 6 3 4 ok12_6 (@merge check12 9 3 1 ok12_9 ok12_12)))
+theorem proven12 : valid guard (geom 6) 12 t12 := layer proven11 ok12
+def t13 : Table := table V 64 0 #[0x0] #[0x5344cf3ac2871a61600000000401]
+def check13 (i : Nat) := node guard (geom 6) 12 t12 (t13.state i)
+theorem ok13_0 : batch check13 0 1=true := by decide +kernel
+theorem ok13 : batch check13 0 1=true := ok13_0
+theorem proven13 : valid guard (geom 6) 13 t13 := layer proven12 ok13
+theorem root_mem : hit t13 (order (root 6 true))=true := by decide +kernel
+theorem exclusion : run guard (geom 6) 13 (order (root 6 true))=false := hit_false proven13 root_mem
+end CoNine3024.Canon.G6Y
