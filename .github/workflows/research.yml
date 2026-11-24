@@ -1,0 +1,76 @@
+name: Seven-variable theta complete paired-row frontier
+on:
+  push:
+    branches: [co-theta-compact-probe]
+permissions:
+  contents: read
+jobs:
+  lean:
+    if: github.repository == 'Great-Leader-of-ISLAND/pequalnp-proofs' && github.event.repository.private == false
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    env:
+      LEAN_NUM_THREADS: 2
+    steps:
+      - name: Fetch this exact public commit
+        run: |
+          git init -q
+          git fetch -q --depth 1 "https://github.com/${GITHUB_REPOSITORY}.git" "$GITHUB_SHA"
+          git checkout -q --detach FETCH_HEAD
+          git init -q project
+          git -C project fetch -q --depth=1 --no-tags https://github.com/brilliant-hq/pequalnp-proofs.git cc7575339c58a3f0e2e855a13128e39ba904a1fc
+          git -C project checkout -q --detach FETCH_HEAD
+          cp research/CoTheta*.lean project/lean/PEqualNP/
+      - name: Install pinned Lean
+        working-directory: project/lean
+        run: |
+          curl -fsSL --retry 3 -o "$RUNNER_TEMP/elan.tar.gz" https://github.com/leanprover/elan/releases/download/v4.4.0/elan-x86_64-unknown-linux-gnu.tar.gz
+          echo '0e8250aa2be86c7af929ade68db617af9edc8b9ccf6eaf5ece228250d0d032e2  '"$RUNNER_TEMP/elan.tar.gz" | sha256sum -c -
+          tar xzf "$RUNNER_TEMP/elan.tar.gz" -C "$RUNNER_TEMP" elan-init
+          "$RUNNER_TEMP/elan-init" -y --no-modify-path --default-toolchain none
+          export PATH="$HOME/.elan/bin:$PATH"
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+          elan toolchain install "$(cat lean-toolchain)"
+          lean --version
+      - name: Build the research file with the pinned Mathlib
+        working-directory: project/lean
+        run: |
+          lake exe cache get Mathlib
+          lake build +PEqualNP.CoThetaCompact
+          printf '%s\n' 'import PEqualNP.CoThetaCompact' '#print axioms CoThetaCompact.exclusion' > "$RUNNER_TEMP/Audit.lean"
+          lake env lean "$RUNNER_TEMP/Audit.lean"
+      - name: Check physical leading gate and all seven orbit relabelings
+        continue-on-error: true
+        working-directory: project/lean
+        run: lake build +PEqualNP.CoThetaOrbit
+      - name: Time three compact root evaluations before kernel verification
+        working-directory: project/lean
+        run: |
+          cat > "$RUNNER_TEMP/Probe.lean" <<'LEAN'
+          import PEqualNP.CoThetaCompact
+          def main (args : List String) : IO Unit := do
+            let j := (args.headD "0").toNat!
+            if h : j < 7 then IO.println (CoThetaCompact.checkedRoot ⟨j,h⟩)
+          LEAN
+          for j in 0 2 3; do
+            echo "Evaluating compact root $j"
+            r=$(timeout 90s lake env lean --run "$RUNNER_TEMP/Probe.lean" "$j") || { echo "Compact evaluation timed out"; exit 1; }
+            echo "$r"
+            test "$r" = true
+          done
+      - name: Kernel audit shared first layer and correct signed roots
+        continue-on-error: true
+        working-directory: project/lean
+        run: |
+          timeout 3m lake build +PEqualNP.CoThetaLayerSanity
+      - name: Kernel decide first compact orbit
+        working-directory: project/lean
+        run: |
+          cat > "$RUNNER_TEMP/Kernel.lean" <<'LEAN'
+          import PEqualNP.CoThetaCompact
+          set_option maxRecDepth 30000
+          set_option maxHeartbeats 0
+          theorem compact0 : CoThetaCompact.checkedRoot 0 = true := by decide +kernel
+          #print axioms compact0
+          LEAN
+          timeout 8m lake env lean "$RUNNER_TEMP/Kernel.lean"
