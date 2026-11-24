@@ -1,0 +1,66 @@
+name: Signed readers of a Petersen circuit
+on:
+  push:
+    branches: [co-signed-exact-2598-1246]
+permissions:
+  contents: read
+jobs:
+  lean:
+    if: github.repository == 'Great-Leader-of-ISLAND/pequalnp-proofs' && github.event.repository.private == false
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      LEAN_NUM_THREADS: 2
+    steps:
+      - name: Fetch this exact public commit
+        run: |
+          git init -q
+          git fetch -q --depth 1 "https://github.com/${GITHUB_REPOSITORY}.git" "$GITHUB_SHA"
+          git checkout -q --detach FETCH_HEAD
+          git init -q project
+          git -C project fetch -q --depth=1 --no-tags https://github.com/brilliant-hq/pequalnp-proofs.git b7fda94310e5fb9dbef1e669f33b26bd63ea42ea
+          git -C project checkout -q --detach FETCH_HEAD
+          cp research/Co*.lean project/lean/PEqualNP/
+      - name: Install pinned Lean
+        working-directory: project/lean
+        run: |
+          curl -fsSL --retry 3 -o "$RUNNER_TEMP/elan.tar.gz" https://github.com/leanprover/elan/releases/download/v4.4.0/elan-x86_64-unknown-linux-gnu.tar.gz
+          echo '0e8250aa2be86c7af929ade68db617af9edc8b9ccf6eaf5ece228250d0d032e2  '"$RUNNER_TEMP/elan.tar.gz" | sha256sum -c -
+          tar xzf "$RUNNER_TEMP/elan.tar.gz" -C "$RUNNER_TEMP" elan-init
+          "$RUNNER_TEMP/elan-init" -y --no-modify-path --default-toolchain none
+          export PATH="$HOME/.elan/bin:$PATH"
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+          elan toolchain install "$(cat lean-toolchain)"
+          lean --version
+      - name: Warm the pinned public definitions and official verifier
+        working-directory: project/lean
+        run: |
+          lake exe cache get Mathlib
+          lake build checklemma +PEqualNP.Defs
+          python3 ../../research/Co2598Statement.py "$RUNNER_TEMP/parent.statement"
+          mkdir -p PEqualNP/Outside
+          cp ../../research/CoPetersen2598Cut.lean PEqualNP/Outside/R_meta_2598_371.lean
+          cp ../../research/CoPetersen2598Child.lean PEqualNP/Outside/L_meta_999999.lean
+          printf '%s\n' '["PEqualNP.Defs"]' > "$RUNNER_TEMP/imports.json"
+      - name: Check the proposed reduction of the exact public parent statement
+        working-directory: project/lean
+        run: |
+          node ../.github/scripts/outside-guard.mjs imports PEqualNP/Outside/R_meta_2598_371.lean "$RUNNER_TEMP/imports.json" lean/PEqualNP/Outside/R_meta_2598_371.lean reduce
+          lake build +PEqualNP.Outside.R_meta_2598_371
+          set -o pipefail
+          lake env .lake/build/bin/checklemma PEqualNP.Outside.R_meta_2598_371 "$RUNNER_TEMP/parent.statement" reduce | tee "$RUNNER_TEMP/reduction-verdict.txt"
+          awk '/^CHILD 1 / {print substr($0,9)}' "$RUNNER_TEMP/reduction-verdict.txt" > "$RUNNER_TEMP/first-child.statement"
+          test -s "$RUNNER_TEMP/first-child.statement"
+      - name: Independently judge the first printed child with its self-contained proof
+        working-directory: project/lean
+        run: |
+          node ../.github/scripts/outside-guard.mjs imports PEqualNP/Outside/L_meta_999999.lean "$RUNNER_TEMP/imports.json" lean/PEqualNP/Outside/L_meta_999999.lean check
+          lake build +PEqualNP.Outside.L_meta_999999
+          lake env .lake/build/bin/checklemma PEqualNP.Outside.L_meta_999999 "$RUNNER_TEMP/first-child.statement" check
+      - name: Audit stronger positive and negative cofactor restrictions separately
+        if: success() || failure()
+        working-directory: project/lean
+        run: |
+          lake build +PEqualNP.CoPetersen2598Positive
+          printf '%s\n' 'import PEqualNP.CoPetersen2598Positive' '#print axioms CoPetersen2598.on_price' '#print axioms CoPetersen2598.first_force_price' > "$RUNNER_TEMP/Strengthening.lean"
+          lake env lean "$RUNNER_TEMP/Strengthening.lean"
