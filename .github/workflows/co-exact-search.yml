@@ -1,14 +1,14 @@
 name: Co circuit shard search
 on:
   push:
-    branches: [co-circuit-search-20261123]
+    branches: [co-first13-20261124-0257]
 permissions:
   contents: read
 jobs:
   solve:
     if: github.repository == 'Great-Leader-of-ISLAND/pequalnp-proofs' && github.event.repository.private == false
     runs-on: ubuntu-24.04
-    timeout-minutes: 50
+    timeout-minutes: 100
     steps:
       - name: Fetch the research program and certificate checker
         run: |
@@ -27,12 +27,10 @@ jobs:
       - name: Verify the position condition against full positive and negative controls
         run: |
           set -eu
-          for pos in 14 15; do
+          for pos in 13; do
             for extra in '' --bad-position; do
-              python3 research/late_junk1343.py --position "$pos" --cadical "$RUNNER_TEMP/solver/usr/bin/cadical" --control research/graph1342-control22.json --timeout 8 $extra
+              python3 research/search13.py --position "$pos" --cadical "$RUNNER_TEMP/solver/usr/bin/cadical" --control research/graph1342-control22.json --timeout 8 $extra
             done
           done
-      - name: Search first dirty AND at position 15
-        run: bash research/run-position.sh 15
-      - name: Search first dirty AND at position 14
-        run: bash research/run-position.sh 14
+      - name: Search entire assigned position for 3600 seconds and independently check any DRAT certificate
+        run: bash research/run-position13.sh 13
