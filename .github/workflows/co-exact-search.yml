@@ -1,14 +1,14 @@
-name: Co circuit shard search
+name: Co explicit plane order three windows
 on:
   push:
-    branches: [co-first13-20261124-0257]
+    branches: [co-plane957-0403]
 permissions:
   contents: read
 jobs:
   solve:
     if: github.repository == 'Great-Leader-of-ISLAND/pequalnp-proofs' && github.event.repository.private == false
     runs-on: ubuntu-24.04
-    timeout-minutes: 100
+    timeout-minutes: 32
     steps:
       - name: Fetch the research program and certificate checker
         run: |
@@ -24,13 +24,23 @@ jobs:
           git -C drat fetch -q --depth 1 https://github.com/marijnheule/drat-trim.git 2e3b2dc0ecf938addbd779d42877b6ed69d9a985
           git -C drat checkout -q --detach FETCH_HEAD
           cc -O2 -DNDEBUG drat/drat-trim.c -o "$RUNNER_TEMP/drat-check"
-      - name: Verify the position condition against full positive and negative controls
+      - name: Validate controls and search the borrowed-wire windows sequentially
         run: |
-          set -eu
-          for pos in 13; do
-            for extra in '' --bad-position; do
-              python3 research/search13.py --position "$pos" --cadical "$RUNNER_TEMP/solver/usr/bin/cadical" --control research/graph1342-control22.json --timeout 8 $extra
-            done
+          set -euo pipefail
+          cd research
+          curl -fsS --max-time 20 https://data.pequalnp.com/data/desk/gaps.json -o "$RUNNER_TEMP/desk.json"
+          python3 -c "import json,sys;d=json.load(open(sys.argv[1]));assert any(g['id']=='L-meta-957' for g in d['gaps']) and 'L-meta-957' not in d.get('withdrawn',[])" "$RUNNER_TEMP/desk.json"
+          python3 plane957-sat-window.py --self-test
+          for config in '0,1 inside 180' '0,1 all 240' '0,1,2 inside 240'; do
+            read -r lines mode secs <<< "$config"
+            dir="$RUNNER_TEMP/plane-$lines-$mode"
+            mkdir "$dir"
+            python3 plane957-sat-window.py --lines "$lines" --borrow "$mode" --solver "$RUNNER_TEMP/solver/usr/bin/cadical" --seconds "$secs" --cnf "$dir/cnf" --proof "$dir/cert" --witness "$dir/witness.json" | tee "$dir/log"
+            if test -f "$dir/witness.json"; then cat "$dir/witness.json"; break; fi
+            if grep -q '^UNSAT reported' "$dir/log"; then
+              proof=$(ls -v "$dir"/cert.r* | tail -1)
+              "$RUNNER_TEMP/drat-check" "$dir/cnf" "$proof" > "$dir/checked"
+              tr -d '\r' < "$dir/checked" | grep -Fx 's VERIFIED'
+              sha256sum "$dir/cnf" "$proof"
+            fi
           done
-      - name: Search entire assigned position for 3600 seconds and independently check any DRAT certificate
-        run: bash research/run-position13.sh 13
