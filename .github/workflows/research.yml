@@ -1,0 +1,48 @@
+name: Theta bounded kernel probes
+on:
+  push:
+    branches: [co-theta1924-saturated-1109]
+permissions:
+  contents: read
+jobs:
+  solve:
+    if: github.repository == 'Great-Leader-of-ISLAND/pequalnp-proofs' && github.event.repository.private == false
+    runs-on: ubuntu-24.04
+    timeout-minutes: 48
+    steps:
+      - name: Fetch only the public mathematical sources
+        run: |
+          set -euo pipefail
+          git init -q
+          git fetch -q --depth 1 "https://github.com/${GITHUB_REPOSITORY}.git" "$GITHUB_SHA"
+          git checkout -q --detach FETCH_HEAD
+      - name: Check the straight-line normalization and live-set extraction
+        run: |
+          set -euo pipefail
+          curl -fsSL --max-time 90 -o "$RUNNER_TEMP/elan.tar.gz" https://github.com/leanprover/elan/releases/download/v4.4.0/elan-x86_64-unknown-linux-gnu.tar.gz
+          echo '0e8250aa2be86c7af929ade68db617af9edc8b9ccf6eaf5ece228250d0d032e2  '"$RUNNER_TEMP/elan.tar.gz" | sha256sum -c -
+          tar xzf "$RUNNER_TEMP/elan.tar.gz" -C "$RUNNER_TEMP" elan-init
+          "$RUNNER_TEMP/elan-init" -y --no-modify-path --default-toolchain none
+          export PATH="$HOME/.elan/bin:$PATH"
+          elan toolchain install leanprover/lean4:v4.36.0
+          src="$GITHUB_WORKSPACE/research"
+          cd "$RUNNER_TEMP"
+          python3 -B "$src/theta1924small.py" --mask 0xa12000000000000000000000002931200000000020420008080003a7048000000000000000000000070b04000000000810000141000065e410000000004060000c08002569408810100801030080602008bd3c03800000000000000000002f00240000000028000809000003e50090000000080000018c01801000004108010400000002000100480000050004819100c8b6002881800040201014d70002486040383c0c2680000000000000000000003b24000000000050000009080023e4900000000008200001008000109040069d0440c1604000000000d860001000000100100012088001804005b814020502404260380d1d05800000000009800001a024282d880002480000ac80000e88a123f3800060800008a98101c690001a7402176d000019020603f000015900082ee0a207d6080927a109a6fc31269f --base "$src/CoThetaFreeInstance.lean" --out Small.lean
+          cat Small.lean "$src/CoThetaSatBench.lean" > Bench.lean
+          lean +leanprover/lean4:v4.36.0 -M 2000 -o Bench.olean Bench.lean
+          export LEAN_PATH="$RUNNER_TEMP"
+          export LEAN_NUM_THREADS=1
+          affinity=$(python3 -c 'import os; print(min(os.sched_getaffinity(0)))')
+          warn=0
+          for mode in baseline 0 1; do
+            python3 -B "$src/theta1924bucketproofs.py" 13 14 --chunk 12 --output Check.lean
+            if [ "$mode" != baseline ]; then sed -i "s/casesBlock 13/sprintBlock $mode 13/g" Check.lean; fi
+            set +e
+            timeout -k 3s 180s /usr/bin/time -f 'seconds=%e rss_kib=%M' taskset -c "$affinity" lean +leanprover/lean4:v4.36.0 -j 1 -s 2048 -M 6100 Check.lean > single.log 2>&1
+            status=$?
+            set -e
+            echo "mode=$mode status=$status"
+            tail -7 single.log
+            if test "$status" != 0; then warn=1; fi
+          done
+          exit "$warn"
