@@ -1,0 +1,17 @@
+name: Adjacent OR seeds for the seven-input theta circuit
+on:
+  push:
+    branches: [co-phase2-3239-theta-seeds-1255]
+permissions: {}
+jobs:
+  search:
+    if: github.repository == 'Great-Leader-of-ISLAND/pequalnp-proofs' && github.event.repository.fork == true && github.event.repository.private == false
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Check the planted control and bound both searches
+        run: |
+          git init -q
+          git fetch -q --depth 1 "https://github.com/${GITHUB_REPOSITORY}.git" "$GITHUB_SHA"
+          git checkout -q --detach FETCH_HEAD
+          python research/CoThetaSeedDiagnostic.py --seconds 230
