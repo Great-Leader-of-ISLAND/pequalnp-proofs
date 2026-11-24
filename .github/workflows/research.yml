@@ -1,0 +1,48 @@
+name: Check residual OR seeds and isolated star reconstruction
+on:
+  push:
+    branches: [co-p2-pair-probe-1608]
+permissions:
+  contents: read
+jobs:
+  lean:
+    if: github.repository == 'Great-Leader-of-ISLAND/pequalnp-proofs' && github.event.repository.private == false
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    env:
+      LEAN_NUM_THREADS: 2
+    steps:
+      - name: Fetch this exact public commit
+        run: |
+          git init -q
+          git fetch -q --depth 1 "https://github.com/${GITHUB_REPOSITORY}.git" "$GITHUB_SHA"
+          git checkout -q --detach FETCH_HEAD
+          git init -q project
+          git -C project fetch -q --depth=1 --no-tags https://github.com/open-goat/pequalnp-proofs.git 048b39bb2c5b2c21da06d44218d16366086a68d9
+          git -C project checkout -q --detach FETCH_HEAD
+          cp research/Co*.lean project/lean/PEqualNP/
+      - name: Install pinned Lean
+        working-directory: project/lean
+        run: |
+          curl -fsSL --retry 3 -o "$RUNNER_TEMP/elan.tar.gz" https://github.com/leanprover/elan/releases/download/v4.4.0/elan-x86_64-unknown-linux-gnu.tar.gz
+          echo '0e8250aa2be86c7af929ade68db617af9edc8b9ccf6eaf5ece228250d0d032e2  '"$RUNNER_TEMP/elan.tar.gz" | sha256sum -c -
+          tar xzf "$RUNNER_TEMP/elan.tar.gz" -C "$RUNNER_TEMP" elan-init
+          "$RUNNER_TEMP/elan-init" -y --no-modify-path --default-toolchain none
+          export PATH="$HOME/.elan/bin:$PATH"
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+          elan toolchain install "$(cat lean-toolchain)"
+          lean --version
+      - name: Restore the pinned Mathlib
+        working-directory: project/lean
+        timeout-minutes: 7
+        run: lake exe cache get Mathlib
+      - name: Verify CoNine3024PairProbe
+        if: always()
+        working-directory: project/lean
+        timeout-minutes: 6
+        run: sudo systemd-run --scope --quiet --collect -p MemoryMax=7G setpriv --reuid="$(id -u)" --regid="$(id -g)" --clear-groups env HOME="$HOME" PATH="$PATH" LEAN_NUM_THREADS=2 timeout --kill-after=12s 270 /usr/bin/time -f 'module_seconds=%e rss_kib=%M' lake build "+PEqualNP.CoNine3024PairProbe"
+      - name: Verify CoNine3024Quick
+        if: always()
+        working-directory: project/lean
+        timeout-minutes: 6
+        run: sudo systemd-run --scope --quiet --collect -p MemoryMax=7G setpriv --reuid="$(id -u)" --regid="$(id -g)" --clear-groups env HOME="$HOME" PATH="$PATH" LEAN_NUM_THREADS=2 timeout --kill-after=12s 270 /usr/bin/time -f 'module_seconds=%e rss_kib=%M' lake build "+PEqualNP.CoNine3024Quick"
