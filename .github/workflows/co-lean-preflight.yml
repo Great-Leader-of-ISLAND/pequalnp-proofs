@@ -32,7 +32,7 @@ jobs:
         working-directory: lean
         run: |
           lake exe cache get Mathlib
-          lake build +PEqualNP.CoBadNeighborhood
-          echo 'import PEqualNP.CoBadNeighborhood' > "$RUNNER_TEMP/PrefixAudit.lean"
-          echo '#print axioms PEqualNP.Research.BadNeighborhood.incident_neighborhood_cost' >> "$RUNNER_TEMP/PrefixAudit.lean"
+          lake build +PEqualNP.CoAnchorReduction
+          echo 'import PEqualNP.CoAnchorReduction' > "$RUNNER_TEMP/PrefixAudit.lean"
+          echo '#print axioms PEqualNP.Research.AnchorReduction.exact_on_anchored_lines' >> "$RUNNER_TEMP/PrefixAudit.lean"
           lake env lean "$RUNNER_TEMP/PrefixAudit.lean"
