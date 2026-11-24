@@ -31,8 +31,9 @@ jobs:
       - name: Build the research file with the pinned Mathlib
         working-directory: lean
         run: |
-          lake exe cache get PEqualNP.CoDegreeThree
-          lake build +PEqualNP.CoDegreeThree
-          echo 'import PEqualNP.CoDegreeThree' > "$RUNNER_TEMP/PrefixAudit.lean"
-          echo '#print axioms PEqualNP.Research.DegreeThree.degree_three_price' >> "$RUNNER_TEMP/PrefixAudit.lean"
+          lake exe cache get PEqualNP.CoPivotProjection
+          lake build +PEqualNP.CoPivotProjection
+          echo 'import PEqualNP.CoPivotProjection' > "$RUNNER_TEMP/PrefixAudit.lean"
+          echo '#print axioms PEqualNP.Research.PivotProjection.masking_requires_edge' >> "$RUNNER_TEMP/PrefixAudit.lean"
+          echo '#print axioms PEqualNP.Research.PivotProjection.sensitive_projection' >> "$RUNNER_TEMP/PrefixAudit.lean"
           lake env lean "$RUNNER_TEMP/PrefixAudit.lean"
