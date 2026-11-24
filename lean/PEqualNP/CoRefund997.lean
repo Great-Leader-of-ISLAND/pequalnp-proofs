@@ -159,7 +159,7 @@ theorem small_row_bound (y : Finset (Fin n))
       rw [← spec i.val (typeA i), ← spec j.val (typeA j), hij]
     simpa using Fintype.card_le_of_injective f inj
   have b_in (i : ↥B) : wire i.val (typeB i) ∈ refund S C y := by
-    apply own_refund S C o outputs y i.val _ _ (spec _ _)
+    apply own_refund S C o outputs y i.val _ (wire i.val (typeB i)) (spec i.val (typeB i))
     by_contra hd
     have hb := (Finset.mem_filter.mp i.property).2
     have hs := small i.val
