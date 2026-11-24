@@ -1,0 +1,49 @@
+name: Theta bounded kernel probes
+on:
+  push:
+    branches: [co-theta1924-ban-1114]
+permissions:
+  contents: read
+jobs:
+  solve:
+    if: github.repository == 'Great-Leader-of-ISLAND/pequalnp-proofs' && github.event.repository.private == false
+    runs-on: ubuntu-24.04
+    timeout-minutes: 48
+    steps:
+      - name: Fetch only the public mathematical sources
+        run: |
+          set -euo pipefail
+          git init -q
+          git fetch -q --depth 1 "https://github.com/${GITHUB_REPOSITORY}.git" "$GITHUB_SHA"
+          git checkout -q --detach FETCH_HEAD
+      - name: Check the straight-line normalization and live-set extraction
+        run: |
+          set -euo pipefail
+          curl -fsSL --max-time 90 -o "$RUNNER_TEMP/elan.tar.gz" https://github.com/leanprover/elan/releases/download/v4.4.0/elan-x86_64-unknown-linux-gnu.tar.gz
+          echo '0e8250aa2be86c7af929ade68db617af9edc8b9ccf6eaf5ece228250d0d032e2  '"$RUNNER_TEMP/elan.tar.gz" | sha256sum -c -
+          tar xzf "$RUNNER_TEMP/elan.tar.gz" -C "$RUNNER_TEMP" elan-init
+          "$RUNNER_TEMP/elan-init" -y --no-modify-path --default-toolchain none
+          export PATH="$HOME/.elan/bin:$PATH"
+          elan toolchain install leanprover/lean4:v4.36.0
+          src="$GITHUB_WORKSPACE/research"
+          cd "$RUNNER_TEMP"
+          cp "$src/CoThetaAll128.lean" Small.lean
+          cat Small.lean "$src/CoThetaBarrierBench.lean" > Bench.lean
+          lean +leanprover/lean4:v4.36.0 -M 2000 -o Bench.olean Bench.lean
+          export LEAN_PATH="$RUNNER_TEMP"
+          export LEAN_NUM_THREADS=1
+          affinity=$(python3 -c 'import os; print(min(os.sched_getaffinity(0)))')
+          warn=0
+          for entry in 13:13 13:1 5:1 0:5 1:12; do
+            i=${entry%:*}; bound=${entry#*:}
+            python3 -B "$src/theta1924bucketproofs.py" "$i" "$((i+1))" --chunk 12 --output Check.lean
+            sed -i "s/casesBlock $i/permitBlock $bound $i/g" Check.lean
+            set +e
+            timeout -k 3s 170s /usr/bin/time -f 'seconds=%e rss_kib=%M' taskset -c "$affinity" lean +leanprover/lean4:v4.36.0 -j 1 -s 2048 -M 6100 Check.lean > single.log 2>&1
+            status=$?
+            set -e
+            echo "class=$i bound=$bound status=$status"
+            tail -4 single.log
+            if test "$status" != 0; then warn=1; fi
+          done
+          exit "$warn"
