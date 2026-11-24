@@ -53,11 +53,13 @@ variable (sep : ∀ i j : Fin m, i ≠ j → (S i ∩ S j).card ≤ 1)
 variable (outputs : ∀ (i : Fin m) (x : Fin n → Bool),
   (C.wires (List.ofFn x)).getD (o i) false = decide (∃ p ∈ S i, x p = true))
 
+include outputs in
 private lemma singleton_output (i : Fin m) (p : Fin n) :
     value C (fun v => decide (v = p)) (o i) = true ↔ p ∈ S i := by
   rw [value, outputs]
   simp
 
+include outputs in
 private lemma nontrivial_bounds (i : Fin m) (h : 2 ≤ (S i).card) :
     n ≤ o i ∧ o i < n + C.gates.length := by
   constructor
@@ -80,6 +82,7 @@ private lemma nontrivial_bounds (i : Fin m) (h : 2 ≤ (S i).card) :
     rw [missing_value _ _ _ hx] at hv
     contradiction
 
+include sep outputs in
 private lemma distinct_outputs {i j : Fin m} (hi : 2 ≤ (S i).card)
     (ho : o i = o j) : i = j := by
   by_contra hij
@@ -97,6 +100,7 @@ private noncomputable def refund (S : Fin m → Finset (Fin n)) (C : Circuit) (y
     (∃ i : Fin m, Disjoint (S i) y ∧ ∀ p : Fin n, p ∉ y →
       (value C (fun v => decide (v ∈ y ∨ v = p)) (n + g) = true ↔ p ∈ S i))
 
+include outputs in
 private lemma own_refund (y : Finset (Fin n)) (i : Fin m) (hd : Disjoint (S i) y)
     (g : Fin C.gates.length) (hg : n + (g : ℕ) = o i) : g ∈ refund S C y := by
   classical
@@ -119,6 +123,7 @@ private def rowWeight (y : Finset (Fin n)) (i : Fin m) :=
   if Disjoint (S i) y then (S i).card else min y.card (S i).card
 
 -- The precise output charges used by both measurement windows.
+include sep outputs in
 theorem small_row_bound (y : Finset (Fin n))
     (small : ∀ i, if Disjoint (S i) y then (S i).card ≤ 3 else min y.card (S i).card ≤ 2) :
     (∑ i : Fin m, rowWeight S y i) ≤ C.gates.length + (refund S C y).card + m := by
