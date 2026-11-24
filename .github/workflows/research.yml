@@ -1,0 +1,55 @@
+name: Formal extraction of the eight-variable monotone circuit certificate
+on:
+  push:
+    branches: [co-p2-ao3143-1351]
+permissions:
+  contents: read
+jobs:
+  lean:
+    if: github.repository == 'Great-Leader-of-ISLAND/pequalnp-proofs' && github.event.repository.private == false
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    env:
+      LEAN_NUM_THREADS: 2
+    steps:
+      - name: Fetch this exact public commit
+        run: |
+          git init -q
+          git fetch -q --depth 1 "https://github.com/${GITHUB_REPOSITORY}.git" "$GITHUB_SHA"
+          git checkout -q --detach FETCH_HEAD
+          git init -q project
+          git -C project fetch -q --depth=1 --no-tags https://github.com/open-goat/pequalnp-proofs.git 048b39bb2c5b2c21da06d44218d16366086a68d9
+          git -C project checkout -q --detach FETCH_HEAD
+          cp research/Co*.lean project/lean/PEqualNP/
+      - name: Install pinned Lean
+        working-directory: project/lean
+        run: |
+          curl -fsSL --retry 3 -o "$RUNNER_TEMP/elan.tar.gz" https://github.com/leanprover/elan/releases/download/v4.4.0/elan-x86_64-unknown-linux-gnu.tar.gz
+          echo '0e8250aa2be86c7af929ade68db617af9edc8b9ccf6eaf5ece228250d0d032e2  '"$RUNNER_TEMP/elan.tar.gz" | sha256sum -c -
+          tar xzf "$RUNNER_TEMP/elan.tar.gz" -C "$RUNNER_TEMP" elan-init
+          "$RUNNER_TEMP/elan-init" -y --no-modify-path --default-toolchain none
+          export PATH="$HOME/.elan/bin:$PATH"
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+          elan toolchain install "$(cat lean-toolchain)"
+          lean --version
+      - name: Build the research file with the pinned Mathlib
+        working-directory: project/lean
+        run: |
+          lake exe cache get Mathlib
+          lake env lean PEqualNP/CoRow3241.lean > "$RUNNER_TEMP/row.log" 2>&1 || rowstatus=$?
+          cat "$RUNNER_TEMP/row.log"
+          echo "Independent row compilation status ${rowstatus:-0}"
+          lake build +PEqualNP.CoAO3143Bridge
+          lake env lean PEqualNP/CoAO3143Bench.lean
+          lake build +PEqualNP.CoAO3143Roots +PEqualNP.CoAO3143Buckets
+          for spec in 'outerVars 0' 'base0 4' 'innerVars 10' 'base1 20'; do
+            read -r bank bucket <<< "$spec"
+            printf 'import PEqualNP.CoAO3143Roots\nimport PEqualNP.CoAO3143Buckets\nopen CoAO3143\nset_option maxHeartbeats 0\nset_option maxRecDepth 8192\nexample : rootBucket %s %s = false := by decide +kernel\n' "$bank" "$bucket" > "$RUNNER_TEMP/Probe.lean"
+            echo "Calibrating $bank bucket $bucket"
+            set +e
+            timeout 55 /usr/bin/time -f 'probe_seconds=%e' lake env lean "$RUNNER_TEMP/Probe.lean"
+            result=$?
+            set -e
+            if [ "$result" -ne 0 ] && [ "$result" -ne 124 ]; then exit "$result"; fi
+            echo "Calibration exit $result"
+          done
