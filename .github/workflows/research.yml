@@ -1,0 +1,35 @@
+name: Petersen first inverter exact search
+on:
+  push:
+    branches: [co-petersen1665-0411]
+permissions:
+  contents: read
+jobs:
+  solve:
+    if: github.repository == 'Great-Leader-of-ISLAND/pequalnp-proofs' && github.event.repository.private == false
+    runs-on: ubuntu-24.04
+    timeout-minutes: 32
+    steps:
+      - name: Fetch the research program and certificate checker
+        run: |
+          set -euo pipefail
+          git init -q
+          git fetch -q --depth 1 "https://github.com/${GITHUB_REPOSITORY}.git" "$GITHUB_SHA"
+          git checkout -q --detach FETCH_HEAD
+          cd "$RUNNER_TEMP"
+          apt-get download cadical
+          dpkg-deb -x cadical_*.deb solver
+          "$RUNNER_TEMP/solver/usr/bin/cadical" --version
+          git init -q drat
+          git -C drat fetch -q --depth 1 https://github.com/marijnheule/drat-trim.git 2e3b2dc0ecf938addbd779d42877b6ed69d9a985
+          git -C drat checkout -q --detach FETCH_HEAD
+          cc -O2 -DNDEBUG drat/drat-trim.c -o "$RUNNER_TEMP/drat-check"
+      - name: Validate first inverter and run exact search
+        run: |
+          set -eu
+          cd research
+          curl -fsS --max-time 20 https://data.pequalnp.com/data/desk/gaps.json -o "$RUNNER_TEMP/desk.json"
+          python3 -c "import json,sys;d=json.load(open(sys.argv[1]));assert any(g['id']=='L-meta-1665' for g in d['gaps'])" "$RUNNER_TEMP/desk.json"
+          python3 petersen1665.py --control --seconds 35 --solver "$RUNNER_TEMP/solver/usr/bin/cadical" --checker "$RUNNER_TEMP/drat-check" --directory "$RUNNER_TEMP/known"
+          python3 petersen1665.py --seconds 580 --solver "$RUNNER_TEMP/solver/usr/bin/cadical" --checker "$RUNNER_TEMP/drat-check" --directory "$RUNNER_TEMP/bound"
+          if test -f "$RUNNER_TEMP/bound/witness.json"; then cat "$RUNNER_TEMP/bound/witness.json"; fi
