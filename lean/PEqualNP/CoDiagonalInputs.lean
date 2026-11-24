@@ -80,16 +80,16 @@ theorem incident_endpoints {N J : ℕ} (C : Circuit) (hm : Monotone2 C)
   · subst i
     refine ⟨j, pair N e.1 e.2, singleton (Fin.natAdd N e.2), ?_, hj, ?_⟩
     · intro v hv
-      simp [pair, singleton, hv]
+      simp only [pair, singleton, hv, false_or, or_false]
     · rintro ⟨ha,hb⟩
       obtain ⟨p,l,hI,hp,hl⟩ := sound j _ ha hb
-      simpa [singleton, split_ne p e.2] using hp
+      exact split_ne p e.2 (of_decide_eq_true hp)
   · subst i
     refine ⟨j, pair N e.1 e.2, singleton (Fin.castAdd N e.1), ?_, hj, ?_⟩
     · intro v hv
-      simp [pair, singleton, hv]
+      simp only [pair, singleton, hv, false_or, or_false]
     · rintro ⟨ha,hb⟩
       obtain ⟨p,l,hI,hp,hl⟩ := sound j _ ha hb
-      simpa [singleton, (split_ne e.1 l).symm] using hl
+      exact (split_ne e.1 l).symm (of_decide_eq_true hl)
 
 end PEqualNP.Research.DiagonalInputs

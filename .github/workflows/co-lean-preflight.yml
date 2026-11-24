@@ -31,7 +31,7 @@ jobs:
       - name: Build the research file with the pinned Mathlib
         working-directory: lean
         run: |
-          lake exe cache get PEqualNP.CoDiagonalInputs PEqualNP.CoDiagonalDensity
-          lake build +PEqualNP.CoDiagonalInputs +PEqualNP.CoDiagonalDensity
-          printf '%s\n' 'import PEqualNP.CoDiagonalInputs' 'import PEqualNP.CoDiagonalDensity' '#print axioms PEqualNP.Research.DiagonalInputs.incident_endpoints' '#print axioms PEqualNP.Research.CoDiagonalDensity.bound816' > "$RUNNER_TEMP/PrefixAudit.lean"
+          lake exe cache get PEqualNP.CoDiagonalInputs PEqualNP.CoDiagonalDensity PEqualNP.CoDiagonalWedges
+          lake build +PEqualNP.CoDiagonalInputs +PEqualNP.CoDiagonalDensity +PEqualNP.CoDiagonalWedges
+          printf '%s\n' 'import PEqualNP.CoDiagonalInputs' 'import PEqualNP.CoDiagonalDensity' 'import PEqualNP.CoDiagonalWedges' '#print axioms PEqualNP.Research.DiagonalInputs.incident_endpoints' '#print axioms PEqualNP.Research.CoDiagonalWedges.side_count' '#print axioms PEqualNP.Research.CoDiagonalDensity.bound816' > "$RUNNER_TEMP/PrefixAudit.lean"
           lake env lean "$RUNNER_TEMP/PrefixAudit.lean"
