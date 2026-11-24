@@ -71,7 +71,7 @@ private theorem fold_sim {α : Type} (f : GateOp → List α → α) (d : α)
     apply ih
     · simpa using hlen
     · simp only [List.length_append, List.length_singleton]; omega
-    · simp only [List.length_append, List.length_singleton, List.length_cons] at hb ⊢; omega
+    · simp only [List.length_append, List.length_singleton, List.length_cons, List.length_nil] at hb ⊢; omega
     · intro i
       have he : rewire n S bad i = l.length ↔ i = r.length := by
         by_cases hk : i < n ∧ i ∈ S
@@ -119,8 +119,9 @@ theorem lineDeg_mask (n : ℕ) (S M : Finset ℕ) (C : Circuit) :
   · simp [init]
   · intro i
     have hb : ¬ n + C.gates.length < n := by omega
+    simp only [init_get]
     by_cases hi : i < n <;> by_cases hs : i ∈ S <;>
-      simp [rewire, init_get, hi, hs, hb]
+      simp [rewire, hi, hs, hb]
 
 private theorem deg_mono (g : Gate) (l r : List ℕ) (h : ∀ i, l.getD i 0 ≤ r.getD i 0) :
     g.lineDegree l ≤ g.lineDegree r := by
@@ -159,9 +160,10 @@ theorem lineDeg_mono_marked (C : Circuit) (n : ℕ) (M N : Finset ℕ) (h : M �
   apply degree_fold_mono C.gates (init n M) (init n N)
   · simp [init]
   · intro i
+    simp only [init_get]
     by_cases hm : i ∈ M
-    · simp [init_get, hm, h hm]
-    · simp [init_get, hm]
+    · simp [hm, h hm]
+    · simp [hm]
 
 theorem lineDeg_mask_le (n : ℕ) (S M : Finset ℕ) (C : Circuit) :
     (maskCircuit n S C).lineDeg n M ≤ C.lineDeg n M := by
