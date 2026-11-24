@@ -1,0 +1,51 @@
+name: Theta bounded kernel probes
+on:
+  push:
+    branches: [co-theta1924-probes-0928]
+permissions:
+  contents: read
+jobs:
+  solve:
+    if: github.repository == 'Great-Leader-of-ISLAND/pequalnp-proofs' && github.event.repository.private == false
+    runs-on: ubuntu-24.04
+    timeout-minutes: 13
+    steps:
+      - name: Fetch only the public mathematical sources
+        run: |
+          set -euo pipefail
+          git init -q
+          git fetch -q --depth 1 "https://github.com/${GITHUB_REPOSITORY}.git" "$GITHUB_SHA"
+          git checkout -q --detach FETCH_HEAD
+      - name: Check the straight-line normalization and live-set extraction
+        run: |
+          set -euo pipefail
+          curl -fsSL --max-time 90 -o "$RUNNER_TEMP/elan.tar.gz" https://github.com/leanprover/elan/releases/download/v4.4.0/elan-x86_64-unknown-linux-gnu.tar.gz
+          echo '0e8250aa2be86c7af929ade68db617af9edc8b9ccf6eaf5ece228250d0d032e2  '"$RUNNER_TEMP/elan.tar.gz" | sha256sum -c -
+          tar xzf "$RUNNER_TEMP/elan.tar.gz" -C "$RUNNER_TEMP" elan-init
+          "$RUNNER_TEMP/elan-init" -y --no-modify-path --default-toolchain none
+          export PATH="$HOME/.elan/bin:$PATH"
+          elan toolchain install leanprover/lean4:v4.36.0
+          src="$GITHUB_WORKSPACE/research"
+          python3 -B "$src/theta1924probes.py" --output "$RUNNER_TEMP/probes.txt"
+          cd "$RUNNER_TEMP"
+          cat "$src/CoThetaFreeInstance.lean" probes.txt > Bench.lean
+          timeout -k 3s 90s lean +leanprover/lean4:v4.36.0 -M 1800 -o Bench.olean Bench.lean
+          export LEAN_PATH="$RUNNER_TEMP"
+          export LEAN_NUM_THREADS=1
+          for n in 2 3 4 5 6 7 8; do
+            if ! grep -q "^def probe$n " probes.txt; then continue; fi
+            cat > Check.lean <<EOF
+          import Bench
+          open CoThetaBits
+          set_option maxHeartbeats 0
+          set_option maxRecDepth 12000
+          theorem verifiedProbe : certifiedSearch $n probe$n = false := by decide +kernel
+          #print axioms verifiedProbe
+          EOF
+            set +e
+            (ulimit -v 5500000; timeout -k 3s 20s /usr/bin/time -f 'seconds=%e rss_kib=%M' lean +leanprover/lean4:v4.36.0 -j 1 -M 1600 Check.lean) > "$RUNNER_TEMP/probe$n.log" 2>&1
+            status=$?
+            set -e
+            echo "kernel depth=$n status=$status"
+            tail -6 "$RUNNER_TEMP/probe$n.log"
+          done
