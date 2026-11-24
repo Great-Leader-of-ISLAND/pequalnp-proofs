@@ -32,7 +32,10 @@ jobs:
         working-directory: lean
         run: |
           lake exe cache get Mathlib
-          lake build +PEqualNP.CoAnchorReduction
+          lake build +PEqualNP.CoAnchorReduction +PEqualNP.CoTouchedEdges
           echo 'import PEqualNP.CoAnchorReduction' > "$RUNNER_TEMP/PrefixAudit.lean"
           echo '#print axioms PEqualNP.Research.AnchorReduction.exact_on_anchored_lines' >> "$RUNNER_TEMP/PrefixAudit.lean"
+          echo 'import PEqualNP.CoTouchedEdges' > "$RUNNER_TEMP/TouchedAudit.lean"
+          echo '#print axioms PEqualNP.Research.TouchedEdges.bound' >> "$RUNNER_TEMP/TouchedAudit.lean"
           lake env lean "$RUNNER_TEMP/PrefixAudit.lean"
+          lake env lean "$RUNNER_TEMP/TouchedAudit.lean"
