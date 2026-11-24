@@ -1,0 +1,65 @@
+name: Single NOT theta circuit lower-bound diagnostic
+on:
+  push:
+    branches: [co-theta1924-one-0841]
+permissions:
+  contents: read
+jobs:
+  solve:
+    if: github.repository == 'Great-Leader-of-ISLAND/pequalnp-proofs' && github.event.repository.private == false
+    runs-on: ubuntu-24.04
+    timeout-minutes: 29
+    steps:
+      - name: Load the public mathematical program and proof checker
+        run: |
+          set -euo pipefail
+          git init -q
+          git fetch -q --depth 1 "https://github.com/${GITHUB_REPOSITORY}.git" "$GITHUB_SHA"
+          git checkout -q --detach FETCH_HEAD
+          cd "$RUNNER_TEMP"
+          apt-get download cadical
+          dpkg-deb -x cadical_*.deb cadical
+          git init -q drat
+          git -C drat fetch -q --depth 1 https://github.com/marijnheule/drat-trim.git 2e3b2dc0ecf938addbd779d42877b6ed69d9a985
+          git -C drat checkout -q --detach FETCH_HEAD
+          cc -O2 -DNDEBUG drat/drat-trim.c -o drat-check
+      - name: Check the two finite formula identities in Lean 4.36
+        run: |
+          set -euo pipefail
+          curl -fsSL --max-time 90 -o "$RUNNER_TEMP/elan.tar.gz" https://github.com/leanprover/elan/releases/download/v4.4.0/elan-x86_64-unknown-linux-gnu.tar.gz
+          echo '0e8250aa2be86c7af929ade68db617af9edc8b9ccf6eaf5ece228250d0d032e2  '"$RUNNER_TEMP/elan.tar.gz" | sha256sum -c -
+          tar xzf "$RUNNER_TEMP/elan.tar.gz" -C "$RUNNER_TEMP" elan-init
+          "$RUNNER_TEMP/elan-init" -y --no-modify-path --default-toolchain none
+          export PATH="$HOME/.elan/bin:$PATH"
+          elan toolchain install leanprover/lean4:v4.36.0
+          cp research/CoThetaFormula.lean "$RUNNER_TEMP/ThetaCheck.lean"
+          echo '#print axioms CoThetaFormula.mixed_leaf_elimination' >> "$RUNNER_TEMP/ThetaCheck.lean"
+          echo '#print axioms CoThetaFormula.mixed_edge_excludes_fixed_merge' >> "$RUNNER_TEMP/ThetaCheck.lean"
+          lean +leanprover/lean4:v4.36.0 "$RUNNER_TEMP/ThetaCheck.lean"
+      - name: Validate an eleven-gate control and decide the ten-gate bound
+        if: always() && !cancelled()
+        run: |
+          set -euo pipefail
+          src="$GITHUB_WORKSPACE/research/theta1924one.py"
+          cd "$RUNNER_TEMP"
+          python3 -B "$src" --control --write positive.cnf
+          cadical/usr/bin/cadical positive.cnf > positive.out || test "$?" -eq 10
+          python3 -B "$src" --control --decode positive.out
+          python3 -B "$src" --neg-control --write mixed.cnf
+          cadical/usr/bin/cadical mixed.cnf > mixed.out || test "$?" -eq 10
+          python3 -B "$src" --neg-control --decode mixed.out
+          python3 -B "$src" --write theta10.cnf
+          head -1 theta10.cnf
+          sha256sum theta10.cnf
+          set +e
+          timeout -k 5s 720s cadical/usr/bin/cadical theta10.cnf proof.drat > result.out
+          status=$?
+          set -e
+          case "$status" in
+            10) python3 -B "$src" --decode result.out ;;
+            20) timeout -k 5s 450s ./drat-check theta10.cnf proof.drat > verify.log
+                tail -12 verify.log
+                grep -q 's VERIFIED' verify.log ;;
+            124|137) echo "Diagnostic budget expired with no mathematical verdict."; tail -15 result.out ;;
+            *) tail -15 result.out; exit 1 ;;
+          esac
