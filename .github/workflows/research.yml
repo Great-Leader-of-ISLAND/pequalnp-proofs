@@ -1,0 +1,143 @@
+name: Check two certified circuit slices and physical transition bounds
+on:
+  push:
+    branches: [co-p2-slice-and-orbit-bounds-2221]
+permissions:
+  contents: read
+jobs:
+  lean:
+    if: github.repository == 'Great-Leader-of-ISLAND/pequalnp-proofs' && github.event.repository.private == false
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    env:
+      LEAN_NUM_THREADS: 2
+    steps:
+      - name: Fetch this exact public commit
+        run: |
+          git init -q
+          git fetch -q --depth 1 "https://github.com/${GITHUB_REPOSITORY}.git" "$GITHUB_SHA"
+          git checkout -q --detach FETCH_HEAD
+          git init -q project
+          git -C project fetch -q --depth=1 --no-tags https://github.com/open-goat/pequalnp-proofs.git 07c17837a08201652c6a13e9c0893ace9f6543bf
+          git -C project checkout -q --detach FETCH_HEAD
+          cp research/Co*.lean project/lean/PEqualNP/
+      - name: Install pinned Lean
+        working-directory: project/lean
+        run: |
+          curl -fsSL --retry 3 -o "$RUNNER_TEMP/elan.tar.gz" https://github.com/leanprover/elan/releases/download/v4.4.0/elan-x86_64-unknown-linux-gnu.tar.gz
+          echo '0e8250aa2be86c7af929ade68db617af9edc8b9ccf6eaf5ece228250d0d032e2  '"$RUNNER_TEMP/elan.tar.gz" | sha256sum -c -
+          tar xzf "$RUNNER_TEMP/elan.tar.gz" -C "$RUNNER_TEMP" elan-init
+          "$RUNNER_TEMP/elan-init" -y --no-modify-path --default-toolchain none
+          export PATH="$HOME/.elan/bin:$PATH"
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+          elan toolchain install "$(cat lean-toolchain)"
+          lean --version
+      - name: Restore the pinned Mathlib
+        working-directory: project/lean
+        timeout-minutes: 7
+        run: lake exe cache get Mathlib
+      - name: Audit both real graphs and export internal transition proof samples
+        working-directory: research
+        run: |
+          c++ -O3 -std=c++17 4482-junction-export.cpp -o "$RUNNER_TEMP/export"
+          for k in 0 1; do
+            "$RUNNER_TEMP/export" "$k" "$RUNNER_TEMP/fresh$k.tsv"
+            python3 4482-junction-audit.py "$RUNNER_TEMP/fresh$k.tsv.graph" --binary "$RUNNER_TEMP/r$k.bin" --sample "$RUNNER_TEMP/r$k.json" --sample-count 8
+            python3 4482-junction-compact.py "$RUNNER_TEMP/r$k.bin" "$RUNNER_TEMP/r$k-v2.bin"
+            python3 4482-junction-unpack.py "$RUNNER_TEMP/r$k-v2.bin"
+            python3 4482-junction-unique.py "$RUNNER_TEMP/fresh$k.tsv.graph"
+            python3 4482-junction-lean.py "$RUNNER_TEMP/r$k.json" "$GITHUB_WORKSPACE/project/lean/PEqualNP/CoInternalTest$k.lean" --count 4 --private
+          done
+      - name: Verify Co1675SliceBridge
+        id: commutes
+        if: always()
+        working-directory: project/lean
+        timeout-minutes: 7
+        run: |
+          sudo systemd-run --scope --quiet --collect -p MemoryMax=8G setpriv --reuid="$(id -u)" --regid="$(id -g)" --clear-groups env HOME="$HOME" PATH="$PATH" LEAN_NUM_THREADS=2 timeout --kill-after=10s 300 /usr/bin/time -f 'module_seconds=%e rss_kib=%M' lake build "+PEqualNP.Co1675SliceBridge"
+      - name: Verify CoAlarmPhysical1481
+        if: always()
+        working-directory: project/lean
+        timeout-minutes: 7
+        run: |
+          sudo systemd-run --scope --quiet --collect -p MemoryMax=8G setpriv --reuid="$(id -u)" --regid="$(id -g)" --clear-groups env HOME="$HOME" PATH="$PATH" LEAN_NUM_THREADS=2 timeout --kill-after=10s 300 /usr/bin/time -f 'module_seconds=%e rss_kib=%M' lake build "+PEqualNP.CoAlarmPhysical1481"
+      - name: Verify CoSignedPhysical4938
+        if: always()
+        working-directory: project/lean
+        timeout-minutes: 7
+        run: |
+          sudo systemd-run --scope --quiet --collect -p MemoryMax=8G setpriv --reuid="$(id -u)" --regid="$(id -g)" --clear-groups env HOME="$HOME" PATH="$PATH" LEAN_NUM_THREADS=2 timeout --kill-after=10s 300 /usr/bin/time -f 'module_seconds=%e rss_kib=%M' lake build "+PEqualNP.CoSignedPhysical4938"
+      - name: Verify CoRawGate4938
+        if: always()
+        working-directory: project/lean
+        timeout-minutes: 7
+        run: |
+          sudo systemd-run --scope --quiet --collect -p MemoryMax=8G setpriv --reuid="$(id -u)" --regid="$(id -g)" --clear-groups env HOME="$HOME" PATH="$PATH" LEAN_NUM_THREADS=2 timeout --kill-after=10s 300 /usr/bin/time -f 'module_seconds=%e rss_kib=%M' lake build "+PEqualNP.CoRawGate4938"
+      - name: Verify CoAlarmPort1481
+        if: always()
+        working-directory: project/lean
+        timeout-minutes: 7
+        run: |
+          sudo systemd-run --scope --quiet --collect -p MemoryMax=8G setpriv --reuid="$(id -u)" --regid="$(id -g)" --clear-groups env HOME="$HOME" PATH="$PATH" LEAN_NUM_THREADS=2 timeout --kill-after=10s 300 /usr/bin/time -f 'module_seconds=%e rss_kib=%M' lake build "+PEqualNP.CoAlarmPort1481"
+      - name: Verify CoJunctionScan4482
+        if: always()
+        working-directory: project/lean
+        timeout-minutes: 7
+        run: |
+          sudo systemd-run --scope --quiet --collect -p MemoryMax=8G setpriv --reuid="$(id -u)" --regid="$(id -g)" --clear-groups env HOME="$HOME" PATH="$PATH" LEAN_NUM_THREADS=2 timeout --kill-after=10s 300 /usr/bin/time -f 'module_seconds=%e rss_kib=%M' lake build "+PEqualNP.CoJunctionScan4482"
+      - name: Verify CoJunctionGuard4482
+        if: always()
+        working-directory: project/lean
+        timeout-minutes: 7
+        run: |
+          sudo systemd-run --scope --quiet --collect -p MemoryMax=8G setpriv --reuid="$(id -u)" --regid="$(id -g)" --clear-groups env HOME="$HOME" PATH="$PATH" LEAN_NUM_THREADS=2 timeout --kill-after=10s 300 /usr/bin/time -f 'module_seconds=%e rss_kib=%M' lake build "+PEqualNP.CoJunctionGuard4482"
+      - name: Verify CoRecipeOrbit4482
+        if: always()
+        working-directory: project/lean
+        timeout-minutes: 7
+        run: |
+          sudo systemd-run --scope --quiet --collect -p MemoryMax=8G setpriv --reuid="$(id -u)" --regid="$(id -g)" --clear-groups env HOME="$HOME" PATH="$PATH" LEAN_NUM_THREADS=2 timeout --kill-after=10s 300 /usr/bin/time -f 'module_seconds=%e rss_kib=%M' lake build "+PEqualNP.CoRecipeOrbit4482"
+      - name: Verify CoInternalTest0
+        if: always()
+        working-directory: project/lean
+        timeout-minutes: 7
+        run: |
+          sudo systemd-run --scope --quiet --collect -p MemoryMax=8G setpriv --reuid="$(id -u)" --regid="$(id -g)" --clear-groups env HOME="$HOME" PATH="$PATH" LEAN_NUM_THREADS=2 timeout --kill-after=10s 300 /usr/bin/time -f 'module_seconds=%e rss_kib=%M' lake build "+PEqualNP.CoInternalTest0"
+      - name: Verify CoInternalTest1
+        if: always()
+        working-directory: project/lean
+        timeout-minutes: 7
+        run: |
+          sudo systemd-run --scope --quiet --collect -p MemoryMax=8G setpriv --reuid="$(id -u)" --regid="$(id -g)" --clear-groups env HOME="$HOME" PATH="$PATH" LEAN_NUM_THREADS=2 timeout --kill-after=10s 300 /usr/bin/time -f 'module_seconds=%e rss_kib=%M' lake build "+PEqualNP.CoInternalTest1"
+      - name: Verify Co4358OrbitTable
+        if: always()
+        working-directory: project/lean
+        timeout-minutes: 7
+        run: |
+          sudo systemd-run --scope --quiet --collect -p MemoryMax=8G setpriv --reuid="$(id -u)" --regid="$(id -g)" --clear-groups env HOME="$HOME" PATH="$PATH" LEAN_NUM_THREADS=2 timeout --kill-after=10s 300 /usr/bin/time -f 'module_seconds=%e rss_kib=%M' lake build "+PEqualNP.Co4358OrbitTable"
+      - name: Verify Co4358BitsBench
+        if: always()
+        working-directory: project/lean
+        timeout-minutes: 7
+        run: |
+          sudo systemd-run --scope --quiet --collect -p MemoryMax=8G setpriv --reuid="$(id -u)" --regid="$(id -g)" --clear-groups env HOME="$HOME" PATH="$PATH" LEAN_NUM_THREADS=2 timeout --kill-after=10s 300 /usr/bin/time -f 'module_seconds=%e rss_kib=%M' lake build "+PEqualNP.Co4358BitsBench"
+      - name: Verify Co4358Acceleration
+        if: always()
+        working-directory: project/lean
+        timeout-minutes: 7
+        run: |
+          sudo systemd-run --scope --quiet --collect -p MemoryMax=8G setpriv --reuid="$(id -u)" --regid="$(id -g)" --clear-groups env HOME="$HOME" PATH="$PATH" LEAN_NUM_THREADS=2 timeout --kill-after=10s 300 /usr/bin/time -f 'module_seconds=%e rss_kib=%M' lake build "+PEqualNP.Co4358Acceleration"
+      - name: Verify Co4358OrbitProfile
+        if: always()
+        working-directory: project/lean
+        timeout-minutes: 7
+        run: |
+          sudo systemd-run --scope --quiet --collect -p MemoryMax=8G setpriv --reuid="$(id -u)" --regid="$(id -g)" --clear-groups env HOME="$HOME" PATH="$PATH" LEAN_NUM_THREADS=2 timeout --kill-after=10s 300 /usr/bin/time -f 'module_seconds=%e rss_kib=%M' lake build "+PEqualNP.Co4358OrbitProfile"
+      - name: Verify Co1675ShardFour
+        if: always() && steps.commutes.outcome == 'success'
+        working-directory: project/lean
+        timeout-minutes: 41
+        run: |
+          sudo systemd-run --scope --quiet --collect -p MemoryMax=12G setpriv --reuid="$(id -u)" --regid="$(id -g)" --clear-groups env HOME="$HOME" PATH="$PATH" LEAN_NUM_THREADS=2 timeout --kill-after=10s 1150 /usr/bin/time -f 'module_seconds=%e rss_kib=%M' lake build +PEqualNP.Outside.L_meta_1668
+          sudo systemd-run --scope --quiet --collect -p MemoryMax=12G setpriv --reuid="$(id -u)" --regid="$(id -g)" --clear-groups env HOME="$HOME" PATH="$PATH" LEAN_NUM_THREADS=2 timeout --kill-after=10s 1150 /usr/bin/time -f 'module_seconds=%e rss_kib=%M' lake build +PEqualNP.Outside.L_meta_1673
+          sudo systemd-run --scope --quiet --collect -p MemoryMax=12G setpriv --reuid="$(id -u)" --regid="$(id -g)" --clear-groups env HOME="$HOME" PATH="$PATH" LEAN_NUM_THREADS=2 timeout --kill-after=10s 1150 /usr/bin/time -f 'module_seconds=%e rss_kib=%M' lake build +PEqualNP.Co1675ShardFour
