@@ -1,0 +1,110 @@
+name: Audit the isolated-star reduction for singleton rejection
+on:
+  push:
+    branches: ['co-p2-5282-star-0010']
+permissions: {}
+jobs:
+  lean:
+    if: github.repository == 'Great-Leader-of-ISLAND/pequalnp-proofs' && github.event.repository.fork == true && github.event.repository.private == false
+    runs-on: ubuntu-24.04
+    timeout-minutes: 42
+    env:
+      LEAN_NUM_THREADS: '2'
+      BASE: '81e5465e8c2b4c3669bab9d44f1580b10d63ce47'
+      CANDIDATE_BRANCH: 'R-meta-5282-376-v2'
+      GAP: 'L-meta-5282'
+      FILE: 'lean/PEqualNP/Outside/R_meta_5282_376.lean'
+    steps:
+      - name: Check out the pinned public upstream base and snapshot its public desk statement
+        run: |
+          set -euo pipefail
+          git init -q
+          git fetch -q --no-tags --depth=1 'https://github.com/open-goat/pequalnp-proofs.git' "$BASE"
+          git checkout -q --detach FETCH_HEAD
+          test "$(git rev-parse HEAD)" = "$BASE"
+          mkdir -p "$RUNNER_TEMP/in"
+          curl -fsS --retry 2 --max-time 45 --compressed --max-filesize 33554432 -o "$RUNNER_TEMP/in/gaps.json" https://data.pequalnp.com/data/desk/gaps.json
+          node .github/scripts/outside-guard.mjs gap "$RUNNER_TEMP/in/gaps.json" "$GAP" "$FILE" "$RUNNER_TEMP/in" reduce
+          echo '9420934a1b160e465ebdaab8f7bb6e660a0976d462da7f7d3022a535d9c4fc3a  '"$RUNNER_TEMP/in/statement.txt" | sha256sum -c -
+          echo '086c15d1b559b2a2d009b0769f0c99c6115b689366849c1f05591d4b44c7abc1  '"$RUNNER_TEMP/in/imports.json" | sha256sum -c -
+          node .github/scripts/outside-guard.mjs closure "$PWD" "$RUNNER_TEMP/in/imports.json" "$FILE" "$RUNNER_TEMP/in" reduce
+      - name: Install pinned Lean and prepare Mathlib, definitions and the checker
+        working-directory: lean
+        run: |
+          set -euo pipefail
+          curl -fsSL --retry 3 --max-time 90 -o "$RUNNER_TEMP/elan.tar.gz" https://github.com/leanprover/elan/releases/download/v4.4.0/elan-x86_64-unknown-linux-gnu.tar.gz
+          echo '0e8250aa2be86c7af929ade68db617af9edc8b9ccf6eaf5ece228250d0d032e2  '"$RUNNER_TEMP/elan.tar.gz" | sha256sum -c -
+          tar xzf "$RUNNER_TEMP/elan.tar.gz" -C "$RUNNER_TEMP" elan-init
+          "$RUNNER_TEMP/elan-init" -y --no-modify-path --default-toolchain none
+          export PATH="$HOME/.elan/bin:$PATH"
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+          elan toolchain install "$(cat lean-toolchain)"
+          lean --version
+          lake exe cache get Mathlib
+          targets=(checklemma +PEqualNP.Defs)
+          while IFS= read -r m; do if [[ -n "$m" ]]; then targets+=("+$m"); fi; done < "$RUNNER_TEMP/in/base-imports.txt"
+          lake build "${targets[@]}"
+      - name: Wait for the candidate then read exactly one new file on the expected parent
+        run: |
+          set -euo pipefail
+          fork='https://github.com/Great-Leader-of-ISLAND/pequalnp-proofs.git'
+          ref="refs/heads/$CANDIDATE_BRANCH"
+          result=$(timeout 30s git ls-remote --exit-code "$fork" "$ref")
+          read -r sha actual <<< "$result"
+          [[ "$actual" = "$ref" && "$sha" =~ ^[0-9a-f]{40}$ ]]
+          test "$sha" = "a7082b645f545829972580b1a97d1d33e4e49283"
+          git fetch -q --no-tags --depth=2 "$fork" "$sha"
+          test "$(git rev-parse FETCH_HEAD)" = "$sha"
+          test "$(git show -s --format=%P "$sha")" = "$BASE"
+          printf 'A\0%s\0' "$FILE" > "$RUNNER_TEMP/expected"
+          git diff-tree --no-commit-id -r --no-renames --name-status -z "$BASE" "$sha" > "$RUNNER_TEMP/actual"
+          cmp "$RUNNER_TEMP/expected" "$RUNNER_TEMP/actual"
+          test "$(git ls-tree "$sha" -- "$FILE" | cut -d' ' -f1,2)" = "100644 blob"
+          test "$(git cat-file -s "$sha:$FILE")" -le 524288
+          test ! -e "$FILE" && test ! -L "$FILE"
+          git cat-file blob "$sha:$FILE" > "$FILE"
+          node .github/scripts/outside-guard.mjs imports "$FILE" "$RUNNER_TEMP/in/imports.json" "$FILE" reduce
+          echo "Verifying $sha against upstream parent $BASE"
+      - name: Compile and audit against the posted statement with the upstream verifier
+        timeout-minutes: 23
+        run: |
+          set -euo pipefail
+          # No runner credential is passed to Lean. The candidate is the only added source.
+          # This fork result is advisory. The desk runs its own authoritative check.
+          mkdir -p "$RUNNER_TEMP/co-queue"
+          threads=$(python3 -c 'import os; print(",".join(map(str, sorted(os.sched_getaffinity(0))[:2])))')
+          # checklemma may need swap when all of Mathlib is imported. Use only space
+          # on this disposable VM, preserving at least 6 GiB for later build output.
+          disk=$(df -Pm / /mnt 2>/dev/null | awk 'NR>1 {print $4,$6}' | sort -nr | head -1)
+          read -r free mount <<< "$disk"
+          mb=$((free - 6144))
+          if (( mb > 12288 )); then mb=12288; fi
+          if (( mb >= 1024 )); then
+            swap="${mount%/}/co-verifier-swap"
+            sudo install -m 0600 /dev/null "$swap"
+            sudo fallocate -l "${mb}M" "$swap"
+            sudo mkswap -q "$swap" && sudo swapon "$swap"
+          fi
+          mem=$(awk '/^MemTotal:/{print $2}' /proc/meminfo)
+          old=$((mem - 1572864)); if (( old > 6815744 )); then old=6815744; fi
+          cap=$((mem - 3145728)); if (( cap < old )); then cap=$old; fi
+          deps=$(awk 'NF{n++} END{print n+0}' "$RUNNER_TEMP/in/outside-imports.txt")
+          limit=$((1200 + 240 * deps)); if (( limit > 2700 )); then limit=2700; fi
+          sudo systemd-run --quiet --scope --collect -p "MemoryMax=${cap}K" unshare --net -- setpriv --reuid="$(id -u)" --regid="$(id -g)" --clear-groups --no-new-privs \
+            env -i HOME="$HOME" PATH="$PATH" LEAN_NUM_THREADS=2 PEQUALNP_HOME="$RUNNER_TEMP/co-queue" \
+            taskset -c "$threads" timeout --kill-after=15s "$limit" /usr/bin/time -f "cold_seconds=%e rss_kib=%M" node tools/check-lean.mjs "$FILE" "$RUNNER_TEMP/in/statement.txt" reduce
+
+      - name: Fetch the independent proofs of the reduction premises after the original audit
+        if: always()
+        run: |
+          set -euo pipefail
+          git init -q "$RUNNER_TEMP/research"
+          git -C "$RUNNER_TEMP/research" fetch -q --depth=1 "https://github.com/${GITHUB_REPOSITORY}.git" "$GITHUB_SHA"
+          git -C "$RUNNER_TEMP/research" checkout -q --detach FETCH_HEAD
+          cp "$RUNNER_TEMP"/research/research/Co*.lean lean/PEqualNP/
+
+      - name: Verify Co5282Attach independently
+        if: always()
+        working-directory: lean
+        timeout-minutes: 6
+        run: env LEAN_NUM_THREADS=2 timeout --kill-after=8s 290 /usr/bin/time -f 'module_seconds=%e rss_kib=%M' lake build "+PEqualNP.Co5282Attach"
