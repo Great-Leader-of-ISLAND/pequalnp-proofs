@@ -1,6 +1,6 @@
 import PEqualNP.Defs
 
-namespace PEqualNP.Outside.L_meta_28584_aux
+namespace PEqualNP.Outside.L_meta_32536_aux
 
 -- Method and the generic engine (Prog, gate elimination, CoreSearch) are copied from the merged
 -- PEqualNP.Outside.L_meta_28584 by danielchin (Apache License 2.0). The graph data, the elimination
@@ -985,33 +985,33 @@ theorem lower {n : ℕ} {f : F} (columns roots : List W)
 
 end CoreSearch
 
-def target : F := fun x => (x 0 && x 4) || (x 0 && x 5) || (x 1 && x 5) || (x 0 && x 6) || (x 1 && x 6) || (x 2 && x 6) || (x 4 && x 6) || (x 0 && x 7) || (x 3 && x 7) || (x 4 && x 7) || (x 5 && x 7) || (x 6 && x 7)
+def target : F := fun x => (x 0 && x 3) || (x 0 && x 4) || (x 1 && x 4) || (x 3 && x 4) || (x 0 && x 5) || (x 1 && x 5) || (x 3 && x 5) || (x 0 && x 6) || (x 1 && x 6) || (x 3 && x 6) || (x 4 && x 6) || (x 0 && x 7) || (x 2 && x 7) || (x 3 && x 7) || (x 4 && x 7) || (x 6 && x 7)
 
 set_option maxRecDepth 16000 in
 set_option maxHeartbeats 0 in
-theorem lower : Low 11 target := (one 1 false (good_at 32 17 0 (by decide +kernel)) (one 2 false (good_at 64 17 0 (by decide +kernel)) (one 3 false (good_at 128 17 0 (by decide +kernel)) (one 5 false (good_at 1 17 0 (by decide +kernel)) (CoreSearch.lower (n := 6) (f := (rs 5 false (rs 3 false (rs 2 false (rs 1 false target))))) [6263061614724383769, 0, 0, 0, 11201418115101687808, 0, 16410122594001645570, 18176396087162602432] [6263061614724383769, 11201418115101687808, 16410122594001645570, 18176396087162602432] (by decide +kernel) (by decide +kernel) (by unfold CoreSearch.Rep; decide +kernel) (by decide +kernel))))))
+theorem lower : Low 12 target := (one 1 false (good_at 16 9 0 (by decide +kernel)) (two 2 (good_at 128 9 0 (by decide +kernel)) (good_at 128 9 0 (by decide +kernel)) (one 3 false (good_at 1 17 0 (by decide +kernel)) (one 5 false (good_at 1 17 0 (by decide +kernel)) (CoreSearch.lower (n := 6) (f := (rs 5 false (rs 3 false (rs 2 false (rs 1 false target))))) [6263061614724383769, 0, 0, 0, 11201418115101687808, 0, 16410122594001645570, 18176396087162602432] [6263061614724383769, 11201418115101687808, 16410122594001645570, 18176396087162602432] (by decide +kernel) (by decide +kernel) (by unfold CoreSearch.Rep; decide +kernel) (by decide +kernel)))) (one 5 false (good_at 1 9 0 (by decide +kernel)) (one 7 false (good_at 0 9 0 (by decide +kernel)) (CoreSearch.lower (n := 6) (f := (rs 7 false (rs 5 false (rs 2 true (rs 1 false target))))) [6263061615835517960, 0, 0, 11201418112649929281, 16410122596148592770, 0, 18176396086356279568, 0] [6263061615835517960, 11201418112649929281, 16410122596148592770, 18176396086356279568] (by decide +kernel) (by decide +kernel) (by unfold CoreSearch.Rep; decide +kernel) (by decide +kernel))))))
 
-def witness : List Gate := [⟨.or, [0, 3]⟩, ⟨.or, [2, 4]⟩, ⟨.or, [5, 6]⟩, ⟨.or, [0, 7]⟩, ⟨.or, [11, 1]⟩, ⟨.and, [12, 10]⟩, ⟨.and, [11, 4]⟩, ⟨.and, [8, 7]⟩, ⟨.and, [9, 6]⟩, ⟨.or, [13, 14]⟩, ⟨.or, [17, 15]⟩, ⟨.or, [18, 16]⟩]
+def witness : List Gate := [⟨.or, [3, 4]⟩, ⟨.or, [0, 6]⟩, ⟨.or, [4, 5]⟩, ⟨.or, [10, 6]⟩, ⟨.or, [0, 1]⟩, ⟨.or, [12, 3]⟩, ⟨.or, [8, 9]⟩, ⟨.or, [14, 2]⟩, ⟨.and, [15, 7]⟩, ⟨.and, [13, 11]⟩, ⟨.and, [9, 8]⟩, ⟨.or, [16, 17]⟩, ⟨.or, [19, 18]⟩]
 
 theorem witness_ok : ∀ g ∈ witness, (g.op = .and ∨ g.op = .or) ∧ g.inputs.length ≤ 2 := by
   simp [witness]
 
 set_option maxRecDepth 16000 in
 set_option maxHeartbeats 0 in
-theorem witness_eval : ∀ x : X, Circuit.eval ⟨witness, 19⟩ (List.ofFn x) = target x := by
+theorem witness_eval : ∀ x : X, Circuit.eval ⟨witness, 20⟩ (List.ofFn x) = target x := by
   decide +kernel
 
 set_option maxRecDepth 16000 in
 set_option maxHeartbeats 0 in
-theorem target_eq : ∀ x : X, target x = decide (∃ i < ([0, 4, 0, 5, 1, 5, 0, 6, 1, 6, 2, 6, 4, 6, 0, 7, 3, 7, 4, 7, 5, 7, 6, 7] : List ℕ).length / 2, (List.ofFn x).getD (([0, 4, 0, 5, 1, 5, 0, 6, 1, 6, 2, 6, 4, 6, 0, 7, 3, 7, 4, 7, 5, 7, 6, 7] : List ℕ).getD (2 * i) 0) false = true ∧ (List.ofFn x).getD (([0, 4, 0, 5, 1, 5, 0, 6, 1, 6, 2, 6, 4, 6, 0, 7, 3, 7, 4, 7, 5, 7, 6, 7] : List ℕ).getD (2 * i + 1) 0) false = true) := by
+theorem target_eq : ∀ x : X, target x = decide (∃ i < ([0, 3, 0, 4, 1, 4, 3, 4, 0, 5, 1, 5, 3, 5, 0, 6, 1, 6, 3, 6, 4, 6, 0, 7, 2, 7, 3, 7, 4, 7, 6, 7] : List ℕ).length / 2, (List.ofFn x).getD (([0, 3, 0, 4, 1, 4, 3, 4, 0, 5, 1, 5, 3, 5, 0, 6, 1, 6, 3, 6, 4, 6, 0, 7, 2, 7, 3, 7, 4, 7, 6, 7] : List ℕ).getD (2 * i) 0) false = true ∧ (List.ofFn x).getD (([0, 3, 0, 4, 1, 4, 3, 4, 0, 5, 1, 5, 3, 5, 0, 6, 1, 6, 3, 6, 4, 6, 0, 7, 2, 7, 3, 7, 4, 7, 6, 7] : List ℕ).getD (2 * i + 1) 0) false = true) := by
   decide +kernel
 
-end PEqualNP.Outside.L_meta_28584_aux
+end PEqualNP.Outside.L_meta_32536_aux
 
-open PEqualNP.Outside.L_meta_28584_aux in
-theorem PEqualNP.Outside.L_meta_28584 : (∀ (gates : List PEqualNP.CircuitLowerBounds.Gate) (o : ℕ), (∀ g ∈ gates, (g.op = PEqualNP.CircuitLowerBounds.GateOp.and ∨ g.op = PEqualNP.CircuitLowerBounds.GateOp.or ∨ g.op = PEqualNP.CircuitLowerBounds.GateOp.not) ∧ g.inputs.length ≤ 2) → (∀ i j : Fin gates.length, (gates.get i).op = PEqualNP.CircuitLowerBounds.GateOp.not → (gates.get j).op = PEqualNP.CircuitLowerBounds.GateOp.not → i = j) → (∀ x : Fin 8 → Bool, PEqualNP.CircuitLowerBounds.Circuit.eval ⟨gates, o⟩ (List.ofFn x) = decide (∃ i < ([0, 4, 0, 5, 1, 5, 0, 6, 1, 6, 2, 6, 4, 6, 0, 7, 3, 7, 4, 7, 5, 7, 6, 7] : List ℕ).length / 2, (List.ofFn x).getD (([0, 4, 0, 5, 1, 5, 0, 6, 1, 6, 2, 6, 4, 6, 0, 7, 3, 7, 4, 7, 5, 7, 6, 7] : List ℕ).getD (2 * i) 0) false = true ∧ (List.ofFn x).getD (([0, 4, 0, 5, 1, 5, 0, 6, 1, 6, 2, 6, 4, 6, 0, 7, 3, 7, 4, 7, 5, 7, 6, 7] : List ℕ).getD (2 * i + 1) 0) false = true)) → ∃ (gates' : List PEqualNP.CircuitLowerBounds.Gate) (o' : ℕ), (∀ g ∈ gates', (g.op = PEqualNP.CircuitLowerBounds.GateOp.and ∨ g.op = PEqualNP.CircuitLowerBounds.GateOp.or) ∧ g.inputs.length ≤ 2) ∧ gates'.length ≤ gates.length ∧ ∀ x : Fin 8 → Bool, PEqualNP.CircuitLowerBounds.Circuit.eval ⟨gates', o'⟩ (List.ofFn x) = decide (∃ i < ([0, 4, 0, 5, 1, 5, 0, 6, 1, 6, 2, 6, 4, 6, 0, 7, 3, 7, 4, 7, 5, 7, 6, 7] : List ℕ).length / 2, (List.ofFn x).getD (([0, 4, 0, 5, 1, 5, 0, 6, 1, 6, 2, 6, 4, 6, 0, 7, 3, 7, 4, 7, 5, 7, 6, 7] : List ℕ).getD (2 * i) 0) false = true ∧ (List.ofFn x).getD (([0, 4, 0, 5, 1, 5, 0, 6, 1, 6, 2, 6, 4, 6, 0, 7, 3, 7, 4, 7, 5, 7, 6, 7] : List ℕ).getD (2 * i + 1) 0) false = true)) := by
+open PEqualNP.Outside.L_meta_32536_aux in
+theorem PEqualNP.Outside.L_meta_32536 : (∀ (gates : List PEqualNP.CircuitLowerBounds.Gate) (o : ℕ), (∀ g ∈ gates, (g.op = PEqualNP.CircuitLowerBounds.GateOp.and ∨ g.op = PEqualNP.CircuitLowerBounds.GateOp.or ∨ g.op = PEqualNP.CircuitLowerBounds.GateOp.not) ∧ g.inputs.length ≤ 2) → (∀ i j : Fin gates.length, (gates.get i).op = PEqualNP.CircuitLowerBounds.GateOp.not → (gates.get j).op = PEqualNP.CircuitLowerBounds.GateOp.not → i = j) → (∀ x : Fin 8 → Bool, PEqualNP.CircuitLowerBounds.Circuit.eval ⟨gates, o⟩ (List.ofFn x) = decide (∃ i < ([0, 3, 0, 4, 1, 4, 3, 4, 0, 5, 1, 5, 3, 5, 0, 6, 1, 6, 3, 6, 4, 6, 0, 7, 2, 7, 3, 7, 4, 7, 6, 7] : List ℕ).length / 2, (List.ofFn x).getD (([0, 3, 0, 4, 1, 4, 3, 4, 0, 5, 1, 5, 3, 5, 0, 6, 1, 6, 3, 6, 4, 6, 0, 7, 2, 7, 3, 7, 4, 7, 6, 7] : List ℕ).getD (2 * i) 0) false = true ∧ (List.ofFn x).getD (([0, 3, 0, 4, 1, 4, 3, 4, 0, 5, 1, 5, 3, 5, 0, 6, 1, 6, 3, 6, 4, 6, 0, 7, 2, 7, 3, 7, 4, 7, 6, 7] : List ℕ).getD (2 * i + 1) 0) false = true)) → ∃ (gates' : List PEqualNP.CircuitLowerBounds.Gate) (o' : ℕ), (∀ g ∈ gates', (g.op = PEqualNP.CircuitLowerBounds.GateOp.and ∨ g.op = PEqualNP.CircuitLowerBounds.GateOp.or) ∧ g.inputs.length ≤ 2) ∧ gates'.length ≤ gates.length ∧ ∀ x : Fin 8 → Bool, PEqualNP.CircuitLowerBounds.Circuit.eval ⟨gates', o'⟩ (List.ofFn x) = decide (∃ i < ([0, 3, 0, 4, 1, 4, 3, 4, 0, 5, 1, 5, 3, 5, 0, 6, 1, 6, 3, 6, 4, 6, 0, 7, 2, 7, 3, 7, 4, 7, 6, 7] : List ℕ).length / 2, (List.ofFn x).getD (([0, 3, 0, 4, 1, 4, 3, 4, 0, 5, 1, 5, 3, 5, 0, 6, 1, 6, 3, 6, 4, 6, 0, 7, 2, 7, 3, 7, 4, 7, 6, 7] : List ℕ).getD (2 * i) 0) false = true ∧ (List.ofFn x).getD (([0, 3, 0, 4, 1, 4, 3, 4, 0, 5, 1, 5, 3, 5, 0, 6, 1, 6, 3, 6, 4, 6, 0, 7, 2, 7, 3, 7, 4, 7, 6, 7] : List ℕ).getD (2 * i + 1) 0) false = true)) := by
   intro gates o hg _ he
-  by_cases hs : 12 ≤ gates.length
-  · exact ⟨witness, 19, witness_ok, hs, fun x => (witness_eval x).trans (target_eq x)⟩
+  by_cases hs : 13 ≤ gates.length
+  · exact ⟨witness, 20, witness_ok, hs, fun x => (witness_eval x).trans (target_eq x)⟩
   · exact ⟨gates, o, all_not_not lower gates o hg (by omega)
       (fun x => (he x).trans (target_eq x).symm), le_rfl, he⟩
