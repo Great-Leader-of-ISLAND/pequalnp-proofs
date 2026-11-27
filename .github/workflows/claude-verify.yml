@@ -1,0 +1,59 @@
+name: Claude Lean verify
+on:
+  push:
+    branches: ['claude-p3-verify-*']
+permissions:
+  contents: read
+jobs:
+  lean:
+    if: github.repository == 'Great-Leader-of-ISLAND/pequalnp-proofs'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 100
+    steps:
+      - name: Fetch this commit and the pinned project
+        run: |
+          git init -q self
+          git -C self fetch -q --depth 1 "https://github.com/${GITHUB_REPOSITORY}.git" "$GITHUB_SHA"
+          git -C self checkout -q --detach FETCH_HEAD
+          git init -q project
+          git -C project fetch -q --depth=1 --no-tags https://github.com/open-goat/pequalnp-proofs.git b9c494eec7ecaa78ca50679bc4cd468028e4a10e
+          git -C project checkout -q --detach FETCH_HEAD
+          sha256sum self/research/*.lean
+          cp self/research/L_meta_*.lean project/lean/PEqualNP/Outside/
+      - name: Install pinned Lean
+        working-directory: project/lean
+        run: |
+          curl -fsSL --retry 3 -o "$RUNNER_TEMP/elan.tar.gz" https://github.com/leanprover/elan/releases/download/v4.4.0/elan-x86_64-unknown-linux-gnu.tar.gz
+          echo '0e8250aa2be86c7af929ade68db617af9edc8b9ccf6eaf5ece228250d0d032e2  '"$RUNNER_TEMP/elan.tar.gz" | sha256sum -c -
+          tar xzf "$RUNNER_TEMP/elan.tar.gz" -C "$RUNNER_TEMP" elan-init
+          "$RUNNER_TEMP/elan-init" -y --no-modify-path --default-toolchain none
+          export PATH="$HOME/.elan/bin:$PATH"
+          echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
+          elan toolchain install "$(cat lean-toolchain)"
+          lean --version
+      - name: Restore the pinned Mathlib
+        working-directory: project/lean
+        timeout-minutes: 15
+        run: lake exe cache get
+      - name: Build the project definitions
+        working-directory: project/lean
+        timeout-minutes: 45
+        run: /usr/bin/time -f 'defs_seconds=%e rss_kib=%M' lake build PEqualNP.Defs
+      - name: Build each proof file under the official limits
+        working-directory: project/lean
+        timeout-minutes: 45
+        run: |
+          set -o pipefail
+          for f in ../../self/research/L_meta_*.lean; do
+            m="PEqualNP.Outside.$(basename "$f" .lean)"
+            echo "== $m"
+            sudo systemd-run --scope --quiet --collect -p MemoryMax=6500M setpriv --reuid="$(id -u)" --regid="$(id -g)" --clear-groups env HOME="$HOME" PATH="$PATH" timeout --kill-after=8s 1200 /usr/bin/time -f "$m module_seconds=%e rss_kib=%M" lake build "$m"
+          done
+      - name: List the axioms of each theorem
+        working-directory: project/lean
+        run: |
+          for f in ../../self/research/L_meta_*.lean; do
+            m="PEqualNP.Outside.$(basename "$f" .lean)"
+            printf 'import %s\n#print axioms %s\n' "$m" "$m" > /tmp/Ax.lean
+            lake env lean /tmp/Ax.lean
+          done
