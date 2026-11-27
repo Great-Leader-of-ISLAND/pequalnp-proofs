@@ -1,7 +1,7 @@
 name: Claude Lean verify
 on:
   push:
-    branches: ['claude-p3-verify-*']
+    branches: [claude-p3-verify-1]
 permissions:
   contents: read
 jobs:
